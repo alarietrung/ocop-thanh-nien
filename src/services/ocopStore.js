@@ -22,6 +22,14 @@ import {
 } from '../utils/formatters';
 import { apiRequest } from './apiClient';
 import { getApiBaseUrl, loadJson, saveJson } from './storageService';
+import {
+  fetchStorefrontOrders,
+  hasStorefrontSync,
+  loadPublicStorefront,
+  loadStorefrontSeason,
+  saveStorefrontOrder,
+  updateStorefrontOrderStatus
+} from './supabaseStorefront';
 
 const STORE_KEY = 'ocop_de3_pilot_state_v2';
 const CART_KEY = 'ocop_de3_cart_v1';
@@ -237,6 +245,25 @@ export function placeCartOrder({ customerName, customerPhone, deliveryMethod, sh
 
 // --- SEASON LOGS (TRUY XUẤT QR MÀN 3) ---
 
+export async function submitCartOrder(fields, orderId) {
+  const cart = loadCart();
+  if (!hasStorefrontSync() || cart.every(item => item.productId.startsWith('quick-'))) return placeCartOrder(fields);
+  if (cart.some(item => item.productId.startsWith('quick-'))) {
+    throw new Error('Vui lòng đặt riêng sản phẩm đăng thử và sản phẩm có trên hệ thống.');
+  }
+  const result = await saveStorefrontOrder({ ...fields, orderId, cart });
+  clearCart();
+  return result;
+}
+
+export async function loadSeasonLog(batchCode) {
+  if (!hasStorefrontSync()) return fetchSeasonLogByBatch(batchCode);
+  const remote = await loadStorefrontSeason(batchCode);
+  if (remote) return remote;
+  const local = fetchSeasonLogByBatch(batchCode);
+  return local?.product?.id.startsWith('quick-') ? local : null;
+}
+
 export function fetchSeasonLogByBatch(batchCode) {
   const state = loadPilotState();
   const log = state.seasonLogs?.[batchCode] || null;
@@ -447,6 +474,14 @@ export function addDemoLivestream({ dateLabel, timeRange, supporterName, product
 
 // --- PUBLIC CATALOG & PRODUCERS ---
 
+async function loadCatalogState(synced) {
+  const local = loadPilotState();
+  if (!synced) return local;
+  const remote = await loadPublicStorefront();
+  const localDrafts = local.products.filter(product => product.id.startsWith('quick-'));
+  return { ...remote, products: [...remote.products, ...localDrafts] };
+}
+
 export async function fetchPublicCatalog({ q = '', category = 'all', platform = 'all', sort = 'featured', page = 1, pageSize = 8 } = {}) {
   if (hasRemoteApi()) {
     const params = new URLSearchParams();
@@ -460,7 +495,8 @@ export async function fetchPublicCatalog({ q = '', category = 'all', platform = 
     return { sourceMode: 'api', ...res };
   }
 
-  const state = loadPilotState();
+  const synced = hasStorefrontSync();
+  const state = await loadCatalogState(synced);
   const qNorm = normalizeVi(q);
   const producerMap = new Map(state.producers.map((p) => [p.id, p]));
 
@@ -499,7 +535,7 @@ export async function fetchPublicCatalog({ q = '', category = 'all', platform = 
   const start = (safePage - 1) * pageSize;
 
   return {
-    sourceMode: 'demo',
+    sourceMode: synced ? 'api' : 'demo',
     items: enriched.slice(start, start + pageSize),
     total,
     page: safePage,
@@ -514,13 +550,17 @@ export async function fetchProductBySlug(slug) {
     const product = await apiRequest(`/products/${encodeURIComponent(slug)}`);
     return { sourceMode: 'api', product };
   }
-  const state = loadPilotState();
+  const synced = hasStorefrontSync();
+  const state = await loadCatalogState(synced);
   const product = state.products.find((p) => p.slug === slug && p.status === 'published');
-  if (!product) return { sourceMode: 'demo', product: null };
+  const sourceMode = synced ? 'api' : 'demo';
+  if (!product) return { sourceMode, product: null };
   const producer = state.producers.find((pr) => pr.id === product.producerId) || null;
+  const seasonLog = product.batchCode && synced ?
+    product.id.startsWith('quick-') ? fetchSeasonLogByBatch(product.batchCode) : await loadStorefrontSeason(product.batchCode, product) : null;
   return {
-    sourceMode: 'demo',
-    product: { ...product, producer }
+    sourceMode,
+    product: { ...product, producer, ...(synced ? { seasonLog } : {}) }
   };
 }
 
@@ -529,11 +569,13 @@ export async function fetchProducerBySlug(slug) {
     const data = await apiRequest(`/producers/${encodeURIComponent(slug)}`);
     return { sourceMode: 'api', ...data };
   }
-  const state = loadPilotState();
+  const synced = hasStorefrontSync();
+  const state = await loadCatalogState(synced);
+  const sourceMode = synced ? 'api' : 'demo';
   const producer = state.producers.find((p) => p.slug === slug) || null;
-  if (!producer) return { sourceMode: 'demo', producer: null, products: [] };
+  if (!producer) return { sourceMode, producer: null, products: [] };
   const products = state.products.filter((p) => p.producerId === producer.id && p.status === 'published');
-  return { sourceMode: 'demo', producer, products };
+  return { sourceMode, producer, products };
 }
 
 export async function submitPilotApplication(payload, { turnstileToken = '' } = {}) {
@@ -743,11 +785,13 @@ export async function fetchSellerOrders({ producerId, token } = {}) {
   if (hasRemoteApi()) {
     return apiRequest('/seller/orders', { token });
   }
+  if (hasStorefrontSync() && token) return fetchStorefrontOrders({ producerId, token });
   const state = loadPilotState();
   return state.orders.filter((o) => o.producerId === producerId);
 }
 
-export async function updateSellerOrderStatus({ orderId, producerId, nextStatus }) {
+export async function updateSellerOrderStatus({ orderId, producerId, nextStatus, token }) {
+  if (hasStorefrontSync() && token) return updateStorefrontOrderStatus({ orderId, producerId, nextStatus, token });
   const state = loadPilotState();
   const target = state.orders.find((o) => o.id === orderId);
   if (!target) throw new Error('Không tìm thấy đơn hàng.');

@@ -1,5 +1,6 @@
 import { loadJson, saveJson } from './storageService';
 import { PRIMARY_FARMER_PRODUCER_ID } from '../data/pilotData';
+import { productionStorefront } from '../config/productionStorefront';
 
 const DEMO_SESSION_KEY = 'ocop_de3_demo_session_v1';
 const SUPABASE_SESSION_KEY = 'ocop_de3_supabase_session_v1';
@@ -71,10 +72,12 @@ export const DEMO_PERSONAS = [
 ];
 
 export function getSupabaseConfig() {
-  const url = String(import.meta.env?.VITE_SUPABASE_URL || '').trim().replace(/\/+$/, '');
-  const publishableKey = String(import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim();
+  const production = globalThis.location?.hostname === productionStorefront.hostname;
+  const url = String(import.meta.env?.VITE_SUPABASE_URL || (production ? productionStorefront.supabaseUrl : '')).trim().replace(/\/+$/, '');
+  const publishableKey = String(import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY || (production ? productionStorefront.publishableKey : '')).trim();
   return {
     configured: Boolean(url && publishableKey),
+    storefront: production || import.meta.env?.VITE_OCOP_STORE_SYNC === 'true',
     url,
     publishableKey
   };

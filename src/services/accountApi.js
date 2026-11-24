@@ -1,6 +1,7 @@
 import { apiRequest } from './apiClient';
 import { getApiBaseUrl } from './storageService';
 import { getSupabaseConfig, saveAuthSession } from './authService';
+import { fetchStorefrontMembership, hasStorefrontSync } from './supabaseStorefront';
 
 function configured() {
   const cfg = getSupabaseConfig();
@@ -40,7 +41,9 @@ export function accountPath(route) {
 export async function signInAccount({email,password}) {
   const data = await authRequest('/token?grant_type=password',{body:{email,password}});
   if (!data.access_token) throw new Error('Không nhận được phiên đăng nhập.');
-  const me = getApiBaseUrl() ? await apiRequest('/me',{token:data.access_token}).catch(() => null) : null;
+  const me = hasStorefrontSync()
+    ? await fetchStorefrontMembership(data.access_token)
+    : getApiBaseUrl() ? await apiRequest('/me',{token:data.access_token}).catch(() => null) : null;
   const session = {
     accessToken:data.access_token,
     refreshToken:data.refresh_token,

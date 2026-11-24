@@ -1099,6 +1099,7 @@ export function VideoStudioPage() {
 export function SellerOrdersPage({ session, onQuickSwitchSeller }) {
   const producerId =
     session?.persona?.producerId ||
+    session?.user?.producerId ||
     session?.user?.producerIds?.[0] ||
     'prod-ba-tu-long-khanh';
 
@@ -1115,6 +1116,8 @@ export function SellerOrdersPage({ session, onQuickSwitchSeller }) {
     try {
       const data = await fetchSellerOrders({ producerId, token: session?.accessToken });
       setOrders(data || []);
+    } catch (err) {
+      setImportNotice(err?.message || 'Chưa tải được danh sách đơn hàng.');
     } finally {
       setLoading(false);
     }
@@ -1123,11 +1126,11 @@ export function SellerOrdersPage({ session, onQuickSwitchSeller }) {
   useEffect(() => {
     loadOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [producerId]);
+  }, [producerId, session?.accessToken]);
 
   async function handleQuickStatus(orderId, nextStatus) {
     try {
-      await updateSellerOrderStatus({ orderId, producerId, nextStatus });
+      await updateSellerOrderStatus({ orderId, producerId, nextStatus, token: session?.accessToken });
       setImportNotice(`Đã cập nhật trạng thái đơn sang "${nextStatus}".`);
       await loadOrders();
     } catch (err) {

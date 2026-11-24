@@ -26,9 +26,9 @@ import {
   addDemoLivestream,
   addToCart,
   fetchLivestreamSchedule,
-  fetchSeasonLogByBatch,
+  loadSeasonLog,
   loadCart,
-  placeCartOrder,
+  submitCartOrder,
   publishQuickGardenProduct,
   updateCartQuantity
 } from '../services/ocopStore';
@@ -200,7 +200,7 @@ export function QuickPublishVoicePage() {
         voiceInputMode: voiceMode
       });
       setPublishedProduct(created);
-      setStatusMsg(`Đã đăng mẫu "${created.title}" vào gian hàng Nhà vườn Ba Tư kèm mã QR lô ${created.batchCode}!`);
+      setStatusMsg(`Đã đăng thử "${created.title}" trong trình duyệt này, kèm nhật ký lô ${created.batchCode}.`);
     } catch (err) {
       setErrorMsg(err?.message || 'Không thể đăng sản phẩm nhanh.');
     }
@@ -466,8 +466,22 @@ export function QuickPublishVoicePage() {
 export function SeasonLogPage() {
   const { batchCode } = useParams();
   const navigate = useNavigate();
-  const log = fetchSeasonLogByBatch(batchCode);
+  const [result, setResult] = useState(null);
   const [addedNotice, setAddedNotice] = useState(false);
+  useEffect(() => {
+    let active = true;
+    setAddedNotice(false);
+    loadSeasonLog(batchCode).then(log => {
+      if (active) setResult({ batchCode, log });
+    }).catch(() => {
+      if (active) setResult({ batchCode, error: 'Chưa tải được nhật ký mùa vụ. Vui lòng thử lại.' });
+    });
+    return () => { active = false; };
+  }, [batchCode]);
+
+  if (result?.batchCode !== batchCode) return <p role="status" className="p-6 text-muted">Đang tải nhật ký mùa vụ…</p>;
+  if (result.error) return <p role="alert" className="p-6 text-muted">{result.error}</p>;
+  const log = result.log;
 
   if (!log) {
     return (
@@ -599,6 +613,9 @@ export function CartCheckoutPage() {
   const [reviewStep, setReviewStep] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [confirmedOrder, setConfirmedOrder] = useState(null);
+  const [placingOrder, setPlacingOrder] = useState(false);
+  const orderAttempt = useRef(null);
+  const sendingOrder = useRef(false);
 
   function syncQty(productId, nextQty) {
     const updated = updateCartQuantity(productId, nextQty);
@@ -631,21 +648,28 @@ export function CartCheckoutPage() {
     setReviewStep(true);
   }
 
-  function handleConfirmPlaceOrder() {
+  async function handleConfirmPlaceOrder() {
+    if (sendingOrder.current) return;
+    sendingOrder.current = true;
+    setPlacingOrder(true);
     setErrorMsg('');
     try {
-      const order = placeCartOrder({
+      orderAttempt.current ||= globalThis.crypto?.randomUUID?.();
+      const order = await submitCartOrder({
         customerName,
         customerPhone,
         deliveryMethod,
         shippingAddress,
         note
-      });
+      }, orderAttempt.current);
       setConfirmedOrder(order);
       setCart([]);
       setReviewStep(false);
     } catch (err) {
       setErrorMsg(err?.message || 'Không thể tạo đơn đặt hàng.');
+    } finally {
+      sendingOrder.current = false;
+      setPlacingOrder(false);
     }
   }
 
@@ -674,7 +698,7 @@ export function CartCheckoutPage() {
           </p>
         </div>
         <p className="text-xs text-muted">
-          Đơn mẫu này đã được ghi nhận ngay vào hệ thống của Nhà vườn Ba Tư để kiểm tra luồng xuyên suốt.
+          {confirmedOrder.source === 'supabase' ? 'Đơn mẫu đã được lưu trên hệ thống. Tài khoản nhà vườn có thể xem đơn từ thiết bị khác.' : 'Đơn mẫu đã được lưu trong bản trải nghiệm trên thiết bị này.'}
         </p>
         <div className="flex flex-wrap gap-2">
           <Link
@@ -939,7 +963,8 @@ export function CartCheckoutPage() {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setReviewStep(false)}
+                    onClick={() => { orderAttempt.current = null; setReviewStep(false); }}
+                    disabled={placingOrder}
                     className="min-h-[48px] px-4 rounded-xl border border-line bg-canvas text-sm font-semibold text-ink"
                   >
                     Sửa lại
@@ -947,9 +972,10 @@ export function CartCheckoutPage() {
                   <button
                     type="button"
                     onClick={handleConfirmPlaceOrder}
+                    disabled={placingOrder}
                     className="flex-1 min-h-[48px] px-5 rounded-xl bg-brand hover:bg-brand-hover text-white text-sm font-bold"
                   >
-                    Xác nhận đặt hàng mẫu
+                    {placingOrder ? 'Đang gửi đơn…' : 'Xác nhận đặt hàng mẫu'}
                   </button>
                 </div>
               </div>

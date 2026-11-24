@@ -163,7 +163,7 @@ export function ProductDetailPage({ session, onQuickSwitchAffiliate }) {
 
   const producer = product.producer;
   const batchCode = product.batchCode || product.sku;
-  const seasonLog = fetchSeasonLogByBatch(batchCode);
+  const seasonLog = product.seasonLog === undefined ? fetchSeasonLogByBatch(batchCode) : product.seasonLog;
   const traceRelativeUrl = '/nhat-ky/' + encodeURIComponent(batchCode);
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const basePath = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');

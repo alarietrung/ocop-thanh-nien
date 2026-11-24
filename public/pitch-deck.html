@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pitch Deck 10 Slide — Chợ OCOP Thanh Niên Đồng Nai</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
+    />
+    <style>
+      :root {
+        --canvas: #faf8f5;
+        --surface: #ffffff;
+        --ink: #1c1917;
+        --muted: #57534e;
+        --line: #e7e5e4;
+        --brand: #15803d;
+        --accent: #b45309;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+        background: var(--canvas);
+        color: var(--ink);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      header {
+        background: var(--surface);
+        border-bottom: 1px solid var(--line);
+        padding: 12px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: #ecfdf5;
+        color: var(--brand);
+        border: 1px solid #a7f3d0;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      main {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .slide {
+        display: none;
+        width: 100%;
+        max-width: 1040px;
+        min-height: 540px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        padding: 36px 44px;
+        flex-direction: column;
+        justify-content: space-between;
+        gap: 24px;
+      }
+      .slide.active { display: flex; }
+      h1 { font-size: clamp(26px, 3.6vw, 42px); line-height: 1.2; margin: 8px 0 0; }
+      h2 { font-size: clamp(22px, 3vw, 32px); line-height: 1.25; margin: 8px 0 0; }
+      p, li { font-size: 16px; line-height: 1.6; color: var(--muted); }
+      strong { color: var(--ink); }
+      .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+      .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+      .card {
+        background: var(--canvas);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 18px 20px;
+      }
+      .kpi {
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--brand);
+        font-variant-numeric: tabular-nums;
+      }
+      .mono { font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+      footer {
+        background: var(--surface);
+        border-top: 1px solid var(--line);
+        padding: 12px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      button {
+        min-height: 44px;
+        padding: 10px 18px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: var(--canvas);
+        color: var(--ink);
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button.primary {
+        background: var(--brand);
+        color: #fff;
+        border-color: var(--brand);
+      }
+      @media (max-width: 640px) {
+        .slide { padding: 24px 20px; min-height: auto; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <span class="badge">Đề 03 · Hackathon Đồng Nai 2026</span>
+        <strong style="margin-left: 10px;">Chợ OCOP Thanh Niên — OCOP Đồng Nai Lên Sàn</strong>
+      </div>
+      <div class="mono" id="slide-counter">Slide 1 / 10</div>
+    </header>
+
+    <main>
+      <!-- Slide 1 -->
+      <section class="slide active" aria-label="Slide 1">
+        <div>
+          <span class="badge">Slide 01 · Tầm nhìn sản phẩm</span>
+          <h1>Chợ OCOP Thanh Niên: Cầu nối nông sản Đồng Nai lên sàn cùng Đoàn viên Affiliate</h1>
+          <p style="margin-top: 16px; font-size: 18px;">
+            Giải quyết nút thắt đầu ra số cho hơn <strong>150 sản phẩm OCOP 3–4 sao</strong> tại Đồng Nai bằng ứng dụng 3 chạm cho chủ cơ sở, Video Studio nhắc thoại trực quan và mạng lưới Đoàn viên làm tiếp thị liên kết minh bạch hoa hồng.
+          </p>
+        </div>
+        <div class="grid-3">
+          <div class="card"><div class="kpi">3 chạm</div><p>Đăng bán &amp; quản lý sản phẩm cho chủ cơ sở nông thôn</p></div>
+          <div class="card"><div class="kpi">15/30/45s</div><p>Video Studio kịch bản có teleprompter chữ lớn</p></div>
+          <div class="card"><div class="kpi">10 SKU</div><p>Lộ trình Pilot 90 ngày kiểm chứng tại Đồng Nai</p></div>
+        </div>
+      </section>
+
+      <!-- Slide 2 -->
+      <section class="slide" aria-label="Slide 2">
+        <div>
+          <span class="badge">Slide 02 · Xác định vấn đề thực tế</span>
+          <h2>Nghịch lý nông sản OCOP Đồng Nai chất lượng cao nhưng hụt hơi trên sàn số</h2>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Nỗi đau Chủ cơ sở / Nông dân</h3>
+            <ul>
+              <li>Hơn 150 sản phẩm OCOP chủ yếu bán tại hội chợ địa phương hoặc qua kênh truyền thống.</li>
+              <li>Phần lớn chủ cơ sở chưa quen cấu hình TikTok Shop, Shopee, Lazada và ngại dựng video.</li>
+              <li>Đơn hàng phân mảnh ở nhiều sàn, khó theo dõi doanh thu và đối soát cộng tác viên.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Cơ hội từ Đoàn viên, Sinh viên</h3>
+            <ul>
+              <li>Đoàn viên thanh niên (16–35 tuổi) thạo quay video ngắn và chia sẻ qua Zalo, TikTok, Facebook.</li>
+              <li>Thiếu công cụ lấy link chính hãng, Media Kit chuẩn xác và sổ hoa hồng rõ ràng theo từng đơn.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 3 -->
+      <section class="slide" aria-label="Slide 3">
+        <div>
+          <span class="badge">Slide 03 · Giải pháp 3 vai trò khép kín</span>
+          <h2>Một nền tảng Web/PWA thống nhất — đúng việc từng đối tượng</h2>
+        </div>
+        <div class="grid-3">
+          <div class="card">
+            <h3>1. App Chủ cơ sở (3 màn)</h3>
+            <p><strong>Sản phẩm của tôi:</strong> Tạo nháp 3 chạm, mẫu mô tả cục bộ, gắn link sàn.<br/><strong>Video Studio:</strong> Canh khung + nhắc thoại.<br/><strong>Đơn hàng:</strong> Gom đơn đa sàn + Import CSV chống trùng.</p>
+          </div>
+          <div class="card">
+            <h3>2. App Đoàn viên (3 màn)</h3>
+            <p><strong>Khám phá:</strong> Lọc 10+ SKU theo hoa hồng &amp; sàn.<br/><strong>Link &amp; Kit:</strong> Tạo mã <code>/r/:code</code> chống đếm ảo.<br/><strong>Hoa hồng:</strong> Sổ cái minh bạch chờ/khả dụng/đảo.</p>
+          </div>
+          <div class="card">
+            <h3>3. Điều phối Tỉnh đoàn</h3>
+            <p>Duyệt hồ sơ OCOP, theo dõi chỉ số pilot tách bạch kết nối thật, đối soát đơn hoàn trả bằng bút toán đảo và Audit Log.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 4 -->
+      <section class="slide" aria-label="Slide 4">
+        <div>
+          <span class="badge">Slide 04 · Điểm nhấn 1: Video Studio Template</span>
+          <h2>Xóa rào cản quay video bán hàng bằng Teleprompter cầm tay chỉ việc</h2>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Cách hoạt động thực tế</h3>
+            <ul>
+              <li>Chọn sản phẩm OCOP + khung thời lượng <strong>15 giây / 30 giây / 45 giây</strong>.</li>
+              <li>Hiển thị từng cảnh quay, gợi ý đặt sản phẩm và <strong>cue thoại chữ lớn</strong> tự chạy theo thanh tiến độ.</li>
+              <li>Hỗ trợ quay trực tiếp trên trình duyệt (<code>getUserMedia</code> + <code>MediaRecorder</code>) và dự phòng chọn file có sẵn trên iOS/in-app browser.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>An toàn &amp; Minh bạch kỹ thuật</h3>
+            <ul>
+              <li>Tự động dừng toàn bộ track camera/micro khi rời màn hình.</li>
+              <li>Kiểm tra giới hạn dung lượng 50MB và định dạng MIME hỗ trợ thực tế.</li>
+              <li>Ghi rõ khung canh hiển thị trên màn hình, không làm hỏng file video xuất.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 5 -->
+      <section class="slide" aria-label="Slide 5">
+        <div>
+          <span class="badge">Slide 05 · Điểm nhấn 2: Affiliate &amp; Kế toán kép</span>
+          <h2>Chống đếm click ảo &amp; Sổ cái hoa hồng chỉ ghi nối (Append-Only)</h2>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Chống bot preview tại /r/:code</h3>
+            <p>Khi link được gửi qua Zalo/Messenger, bot xem trước URL không được tính click. Hệ thống chỉ ghi lượt bấm khi người mua bấm nút CTA xác nhận sang sàn đích đã được allowlist HTTPS.</p>
+          </div>
+          <div class="card">
+            <h3>Sổ cái hoa hồng cân bằng</h3>
+            <p>Mỗi đơn hàng phát sinh cặp bút toán <code>debit/credit</code> theo đơn vị đồng nguyên và basis point (0–10.000). Đơn hoàn trả tự động ghi bút toán đảo thay vì sửa xóa lịch sử.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 6 -->
+      <section class="slide" aria-label="Slide 6">
+        <div>
+          <span class="badge">Slide 06 · Kiến trúc hệ thống &amp; Hạ tầng 0 đồng Pilot</span>
+          <h2>Thiết kế Production-Ready trên nền tảng miễn phí kiểm soát chặt</h2>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Frontend &amp; Chống lạm dụng</h3>
+            <ul>
+              <li><strong>React 18 + Vite + Tailwind + PWA:</strong> Cài đặt trực tiếp trên Android, iPhone, PC; hỗ trợ offline giữ bản nháp.</li>
+              <li><strong>Cloudflare Pages (chính) + Vercel (dự phòng):</strong> Dùng chung một API &amp; CSDL.</li>
+              <li><strong>Cloudflare Turnstile + CSP + CORS allowlist:</strong> Bảo vệ biểu mẫu công khai trước spam.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Backend Fastify 5 &amp; Supabase PostgreSQL</h3>
+            <ul>
+              <li>Kiến trúc phân lớp <code>routes → controller → service → repository</code>, kiểm biên bằng Zod.</li>
+              <li>Schema riêng <code>ocop_app</code>, RLS default-deny theo actor giao dịch và role runtime quyền tối thiểu.</li>
+              <li>Kết nối chuẩn Transaction Pooler TLS không prepared statement có tên.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 7 -->
+      <section class="slide" aria-label="Slide 7">
+        <div>
+          <span class="badge">Slide 07 · Tích hợp sàn TMĐT theo cấp độ thực chứng</span>
+          <h2>Minh bạch ranh giới Sandbox / CSV Import và Kết nối chính thức</h2>
+        </div>
+        <div class="grid-3">
+          <div class="card">
+            <h3>Cấp 1: Link Listing (Chạy ngay)</h3>
+            <p>Gắn URL sản phẩm thật trên TikTok Shop, Shopee, Lazada sau khi kiểm tra HTTPS &amp; tên miền hợp lệ.</p>
+          </div>
+          <div class="card">
+            <h3>Cấp 2: Import CSV (Chạy ngay)</h3>
+            <p>Chủ cơ sở / Ops nhập bảng đơn xuất từ sàn, preview lỗi từng dòng và chống trùng theo khóa tổ hợp <code>(platform, shop_id, external_order_id)</code>.</p>
+          </div>
+          <div class="card">
+            <h3>Cấp 3: OAuth &amp; Webhook (Chờ cấp quyền)</h3>
+            <p>Đã dựng sẵn Adapter Interface &amp; khung xác thực chữ ký raw body; đóng mặc định và gắn nhãn rõ khi chưa có tài khoản đối tác chính thức.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 8 -->
+      <section class="slide" aria-label="Slide 8">
+        <div>
+          <span class="badge">Slide 08 · Danh mục 10 SKU Pilot Đồng Nai</span>
+          <h2>Đại diện các vùng nguyên liệu đặc trưng của tỉnh Đồng Nai</h2>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <ul>
+              <li><strong>Định Quán:</strong> Hạt điều rang muối vỏ lụa 500g (4★), Bột ca cao lên men (4★).</li>
+              <li><strong>Vĩnh Cửu – Tân Triều:</strong> Vỏ bưởi sấy dẻo (4★), Tinh dầu bưởi 100ml (4★), Nấm linh chi đỏ (4★).</li>
+              <li><strong>Long Khánh:</strong> Mật ong hoa chôm chôm 500ml (4★).</li>
+            </ul>
+          </div>
+          <div class="card">
+            <ul>
+              <li><strong>Xuân Lộc:</strong> Trà khổ qua rừng Núi Chứa Chan (3★), Tiêu đen rang thơm (3★).</li>
+              <li><strong>Cẩm Mỹ &amp; Trảng Bom:</strong> Cà phê Robusta rang mộc (4★), Chuối sấy giòn không đường (3★).</li>
+              <li><em>Lưu ý:</em> Dữ liệu demo gắn seed tag riêng, không giả mạo số chứng nhận thật.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 9 -->
+      <section class="slide" aria-label="Slide 9">
+        <div>
+          <span class="badge">Slide 09 · Lộ trình 90 ngày Go-Live 10 SKU Pilot</span>
+          <h2>Kế hoạch triển khai thực địa &amp; tách bạch chỉ tiêu KPI</h2>
+        </div>
+        <div class="grid-3">
+          <div class="card">
+            <h3>Ngày 1–30: Chuẩn hóa</h3>
+            <p>Onboarding 6–10 cơ sở; quay tối thiểu 30 video ngắn bằng Video Studio; 10/10 SKU lên gian hàng và đồng bộ đơn mẫu.</p>
+          </div>
+          <div class="card">
+            <h3>Ngày 31–60: Kích hoạt Đoàn viên</h3>
+            <p>Tập huấn 50–100 đoàn viên/sinh viên ĐH-CĐ Đồng Nai; mục tiêu &gt;= 80 affiliate phát sinh click và &gt;= 300 đơn thử nghiệm.</p>
+          </div>
+          <div class="card">
+            <h3>Ngày 61–90: Đối soát &amp; Mở rộng</h3>
+            <p>Chốt kỳ đối soát mẫu &lt; 24h; lọc Top 3 SKU đóng gói combo quà tặng; mở khóa batch 40+ sản phẩm hướng tới 150+ OCOP.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 10 -->
+      <section class="slide" aria-label="Slide 10">
+        <div>
+          <span class="badge">Slide 10 · Tổng kết &amp; Đề xuất thí điểm</span>
+          <h2>Sẵn sàng kiểm thử đầu cuối — Xin đề xuất 3 bước triển khai cùng Tỉnh đoàn</h2>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Giá trị mang lại cho Đồng Nai</h3>
+            <ul>
+              <li>Giúp nông dân, HTX tự chủ kỹ năng bán hàng số không lệ thuộc thuê ngoài đắt đỏ.</li>
+              <li>Tạo việc làm &amp; thu nhập minh bạch cho đoàn viên, sinh viên ngay tại địa phương.</li>
+              <li>Tỉnh đoàn và Sở Công Thương có số liệu tập trung theo vùng nguyên liệu.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>Bước tiếp theo sau Hackathon</h3>
+            <ul>
+              <li>1. Thành lập tổ công tác chọn đúng 10 sản phẩm OCOP Batch 1 tại 6 huyện/thành phố.</li>
+              <li>2. Kết nối tài khoản Supabase/Cloudflare chính thức của dự án và đăng ký API sàn.</li>
+              <li>3. Tổ chức ngày hội tập huấn 100 đoàn viên khởi nghiệp cùng đặc sản Đồng Nai.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <button type="button" id="prev-btn">← Slide trước</button>
+      <div style="font-size: 13px; color: var(--muted);">Dùng phím mũi tên ◄ ► để chuyển slide</div>
+      <button type="button" id="next-btn" class="primary">Slide tiếp theo →</button>
+    </footer>
+
+    <script>
+      (function () {
+        var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+        var counter = document.getElementById('slide-counter');
+        var prevBtn = document.getElementById('prev-btn');
+        var nextBtn = document.getElementById('next-btn');
+        var idx = 0;
+
+        function render() {
+          slides.forEach(function (el, i) {
+            el.classList.toggle('active', i === idx);
+          });
+          counter.textContent = 'Slide ' + (idx + 1) + ' / ' + slides.length;
+          prevBtn.disabled = idx === 0;
+          nextBtn.disabled = idx === slides.length - 1;
+        }
+
+        function go(delta) {
+          var next = idx + delta;
+          if (next >= 0 && next < slides.length) {
+            idx = next;
+            render();
+          }
+        }
+
+        prevBtn.addEventListener('click', function () { go(-1); });
+        nextBtn.addEventListener('click', function () { go(1); });
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'ArrowRight' || e.key === ' ') go(1);
+          if (e.key === 'ArrowLeft') go(-1);
+        });
+        render();
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-canvas text-ink font-sans antialiased selection:bg-brand/15 selection:text-ink;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand;
+  }
+}
+
+table,
+td,
+th {
+  font-variant-numeric: tabular-nums;
+}
+
+@layer components {
+  .ocop-primary {
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-brand px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .ocop-secondary {
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-line bg-white px-4 text-sm font-semibold text-brand transition hover:bg-blue-50;
+  }
+  .ocop-field {
+    @apply w-full min-h-[46px] rounded-xl border border-line bg-slate-50 px-3 text-sm text-ink transition focus:border-brand focus:bg-white;
+  }
+  .ocop-label {
+    @apply mb-1.5 block text-sm font-semibold text-ink;
+  }
+}
+
+.ocop-dialog {
+  border: 0;
+  padding: 0;
+  width: min(calc(100% - 1.5rem), 30rem);
+  max-height: calc(100dvh - 1.5rem);
+  overflow: auto;
+  border-radius: 1.5rem;
+  color: #0f2442;
+  box-shadow: 0 22px 84px #01142d66;
+}
+
+.ocop-dialog::backdrop {
+  background: #051e40a8;
+  backdrop-filter: blur(6px);
+}
+
+.ocop-dialog-hero {
+  background: linear-gradient(120deg,#003477,#0b58ba 65%,#0099ce);
+  color: white;
+}
+
+@media (max-width: 479px) {
+  .ocop-dialog { margin-bottom: max(.75rem, env(safe-area-inset-bottom)); }
+}

@@ -13,7 +13,8 @@ import {
   Store,
   QrCode,
   Radio,
-  Mic
+  MapPinned,
+  Clock
 } from 'lucide-react';
 import { PRODUCT_CATEGORIES } from '../data/pilotData';
 import { addToCart, fetchPublicCatalog } from '../services/ocopStore';
@@ -112,45 +113,52 @@ export default function CatalogPage() {
 
   return (
     <div className="space-y-5">
-      {/* Featured Storefront Banner: Nhà vườn Ba Tư (Long Khánh) */}
-      <section className="relative overflow-hidden rounded-3xl bg-blue-950 text-white sm:grid sm:grid-cols-[1.45fr_1fr]">
+      {/* Featured Storefront Banner: Direct purchase + QR traceability */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#003477] via-[#0759BA] to-[#0277BD] text-white sm:grid sm:grid-cols-[1.45fr_1fr] shadow-sm">
         <div className="relative z-10 space-y-3 p-5 sm:p-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-xs font-semibold text-blue-50">
             <Store className="w-3.5 h-3.5" aria-hidden="true" />
-            <span>Gian hàng nổi bật tại Long Khánh · Dữ liệu mô phỏng</span>
+            <span>Mua trực tiếp tại vườn Long Khánh &amp; Truy xuất QR · Dữ liệu mô phỏng</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-white leading-tight">
-            Cửa hàng Chợ OCOP Thanh Niên Đồng Nai
+          <h1 className="text-2xl sm:text-4xl font-extrabold text-white leading-tight">
+            Chợ OCOP Thanh Niên Đồng Nai
           </h1>
-          <p className="text-sm text-blue-100 leading-relaxed">
-            Đặt trái cây tươi tại <strong>Nhà vườn Ba Tư (2,5 ha chôm chôm &amp; sầu riêng Long Khánh, 38.000–120.000 ₫/kg)</strong>, quét QR xem nhật ký mùa vụ hoặc ghé vườn nhận hàng.
+          <p className="text-sm sm:text-base text-blue-50 leading-relaxed">
+            Đặt nông sản tươi trực tiếp từ <strong>Nhà vườn Ba Tư (2,5 ha Long Khánh · 38.000–120.000 ₫/kg)</strong> và các cơ sở Đồng Nai, quét mã QR kiểm chứng nhật ký mùa vụ hoặc hẹn ghé vườn hái trái cuối tuần.
           </p>
 
-        <div className="flex flex-wrap gap-2 pt-2">
-          <Link
-            to="/gian-hang/nha-vuon-ba-tu"
-            className="min-h-[44px] px-4 rounded-xl bg-brand hover:bg-brand-hover text-white text-sm font-semibold inline-flex items-center gap-2 transition"
-          >
-            <Store className="w-4 h-4" aria-hidden="true" />
-            <span>Vào Nhà vườn Ba Tư</span>
-          </Link>
-          <Link
-            to="/chu-co-so/dang-nhanh"
-            className="min-h-[44px] px-3.5 rounded-xl border border-line bg-canvas hover:border-brand text-sm font-semibold text-ink inline-flex items-center gap-1.5"
-          >
-            <Mic className="w-4 h-4 text-accent" aria-hidden="true" />
-            <span>Đăng ảnh &amp; Mic</span>
-          </Link>
-          <Link
-            to="/lich-livestream"
-            className="min-h-[44px] px-3.5 rounded-xl border border-line bg-canvas hover:border-brand text-sm font-semibold text-ink inline-flex items-center gap-1.5"
-          >
-            <Radio className="w-4 h-4 text-brand" aria-hidden="true" />
-            <span>Lịch livestream</span>
-          </Link>
+          <div className="flex flex-wrap gap-2 pt-2">
+            <Link
+              to="/gian-hang/nha-vuon-ba-tu"
+              className="min-h-[46px] px-4 rounded-xl bg-white text-brand hover:bg-blue-50 text-sm font-bold inline-flex items-center gap-2 transition shadow-sm"
+            >
+              <Store className="w-4 h-4" aria-hidden="true" />
+              <span>Hồ sơ Nhà vườn Ba Tư</span>
+            </Link>
+            <Link
+              to="/ban-do-vuon"
+              className="min-h-[46px] px-3.5 rounded-xl bg-white/15 hover:bg-white/25 border border-white/30 text-sm font-semibold text-white inline-flex items-center gap-1.5"
+            >
+              <MapPinned className="w-4 h-4" aria-hidden="true" />
+              <span>Bản đồ &amp; Tham quan vườn</span>
+            </Link>
+            <Link
+              to="/lich-livestream"
+              className="min-h-[46px] px-3.5 rounded-xl bg-white/15 hover:bg-white/25 border border-white/30 text-sm font-semibold text-white inline-flex items-center gap-1.5"
+            >
+              <Radio className="w-4 h-4" aria-hidden="true" />
+              <span>Lịch livestream</span>
+            </Link>
+          </div>
         </div>
-        </div>
-        <img src={orchardPhoto} alt="Ảnh minh họa vườn trái cây Long Khánh" width="560" height="560" fetchPriority="high" className="h-48 w-full object-cover sm:h-full sm:min-h-56" />
+        <img
+          src={orchardPhoto}
+          alt="Vườn chôm chôm và sầu riêng Long Khánh, Đồng Nai"
+          width="560"
+          height="560"
+          fetchPriority="high"
+          className="h-52 w-full object-cover sm:h-full sm:min-h-60"
+        />
       </section>
 
       {/* Search & Filters */}
@@ -169,41 +177,42 @@ export default function CatalogPage() {
                 setSearchInput(e.target.value);
                 updateQuery({ q: e.target.value.trim(), page: 1 });
               }}
-              placeholder="Tìm chôm chôm, sầu riêng, măng cụt, hạt điều, Long Khánh..."
-              className="w-full min-h-[44px] pl-10 pr-3 rounded-xl border border-line bg-canvas text-sm text-ink placeholder:text-muted"
+              placeholder="Tìm chôm chôm, sầu riêng, măng cụt, vỏ bưởi Tân Triều, hạt điều..."
+              className="w-full min-h-[46px] pl-10 pr-3 rounded-xl border border-line bg-canvas text-sm text-ink placeholder:text-muted"
             />
           </div>
           <div className="grid grid-cols-2 sm:flex gap-2">
             <div>
               <label htmlFor="filter-platform" className="sr-only">
-                Lọc theo kênh
+                Lọc theo kênh bán
               </label>
               <select
                 id="filter-platform"
                 value={platformParam}
                 onChange={(e) => updateQuery({ platform: e.target.value, page: 1 })}
-                className="w-full min-h-[44px] px-3 rounded-xl border border-line bg-surface text-sm text-ink"
+                className="w-full min-h-[46px] px-3 rounded-xl border border-line bg-surface text-sm text-ink"
               >
-                <option value="all">Tất cả kênh</option>
-                <option value="tiktok">TikTok Shop</option>
-                <option value="shopee">Shopee</option>
-                <option value="lazada">Lazada</option>
+                <option value="all">Tất cả kênh bán</option>
+                <option value="direct_ocop">Đặt trực tiếp tại vườn</option>
+                <option value="tiktok">Kênh đối tác TikTok</option>
+                <option value="shopee">Kênh đối tác Shopee</option>
+                <option value="lazada">Kênh đối tác Lazada</option>
               </select>
             </div>
             <div>
               <label htmlFor="filter-sort" className="sr-only">
-                Sắp xếp
+                Sắp xếp sản phẩm
               </label>
               <select
                 id="filter-sort"
                 value={sortParam}
                 onChange={(e) => updateQuery({ sort: e.target.value, page: 1 })}
-                className="w-full min-h-[44px] px-3 rounded-xl border border-line bg-surface text-sm text-ink"
+                className="w-full min-h-[46px] px-3 rounded-xl border border-line bg-surface text-sm text-ink"
               >
                 <option value="featured">Sắp xếp: Nổi bật</option>
                 <option value="price_asc">Giá thấp đến cao</option>
                 <option value="price_desc">Giá cao đến thấp</option>
-                <option value="commission_desc">Hoa hồng CTV cao</option>
+                <option value="commission_desc">Mức hỗ trợ CTV cao</option>
               </select>
             </div>
           </div>
@@ -218,10 +227,10 @@ export default function CatalogPage() {
                 key={cat.id}
                 type="button"
                 onClick={() => updateQuery({ cat: cat.id, page: 1 })}
-                className={`min-h-[44px] px-3.5 rounded-xl text-xs sm:text-sm font-medium shrink-0 border transition ${
+                className={`min-h-[44px] px-3.5 rounded-xl text-xs sm:text-sm font-semibold shrink-0 border transition ${
                   active
-                    ? 'bg-ink text-white border-ink'
-                    : 'bg-canvas text-ink border-line hover:border-stone-400'
+                    ? 'bg-brand text-white border-brand'
+                    : 'bg-canvas text-ink border-line hover:border-brand'
                 }`}
               >
                 {cat.label}
@@ -232,7 +241,7 @@ export default function CatalogPage() {
             <button
               type="button"
               onClick={clearFilters}
-              className="min-h-[44px] px-3.5 rounded-xl text-xs sm:text-sm font-semibold shrink-0 border border-amber-300 bg-amber-50 text-amber-900 inline-flex items-center gap-1.5"
+              className="min-h-[44px] px-3.5 rounded-xl text-xs sm:text-sm font-semibold shrink-0 border border-amber-300 bg-amber-50 text-amber-950 inline-flex items-center gap-1.5"
             >
               <FilterX className="w-4 h-4" aria-hidden="true" />
               <span>Xóa bộ lọc</span>
@@ -271,10 +280,10 @@ export default function CatalogPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" aria-busy="true">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="bg-surface border border-line rounded-2xl p-4 space-y-3 animate-pulse">
-              <div className="aspect-[4/3] rounded-xl bg-stone-200" />
-              <div className="h-4 bg-stone-200 rounded w-3/4" />
-              <div className="h-4 bg-stone-200 rounded w-1/2" />
-              <div className="h-11 bg-stone-200 rounded-xl w-full" />
+              <div className="aspect-[4/3] rounded-xl bg-blue-100/70" />
+              <div className="h-4 bg-blue-100/70 rounded w-3/4" />
+              <div className="h-4 bg-blue-100/70 rounded w-1/2" />
+              <div className="h-11 bg-blue-100/70 rounded-xl w-full" />
             </div>
           ))}
         </div>
@@ -285,7 +294,7 @@ export default function CatalogPage() {
         <div className="bg-surface border border-line rounded-2xl p-8 text-center space-y-3">
           <p className="text-base font-bold text-ink">Chưa tìm thấy sản phẩm phù hợp bộ lọc</p>
           <p className="text-sm text-muted">
-            Hãy thử tìm &ldquo;chôm chôm&rdquo;, &ldquo;sầu riêng&rdquo;, &ldquo;măng cụt&rdquo; hoặc xóa bộ lọc hiện tại.
+            Hãy thử tìm &ldquo;chôm chôm&rdquo;, &ldquo;sầu riêng&rdquo;, &ldquo;măng cụt&rdquo;, &ldquo;vỏ bưởi&rdquo; hoặc xóa bộ lọc hiện tại.
           </p>
           <button
             type="button"
@@ -305,10 +314,10 @@ export default function CatalogPage() {
             {catalog.items.map((product, index) => (
               <article
                 key={product.id}
-                className="bg-surface border border-line rounded-2xl overflow-hidden flex flex-col justify-between transition hover:border-stone-400"
+                className="bg-surface border border-line rounded-2xl overflow-hidden flex flex-col justify-between transition hover:border-brand hover:shadow-sm"
               >
                 <div>
-                  <Link to={`/san-pham/${product.slug}`} className="block bg-canvas border-b border-line">
+                  <Link to={`/san-pham/${product.slug}`} className="block bg-canvas border-b border-line relative">
                     <img
                       src={product.imageUrl}
                       alt={`${product.title} — ${product.area}`}
@@ -317,11 +326,17 @@ export default function CatalogPage() {
                       loading={index < 4 ? 'eager' : 'lazy'}
                       className="w-full aspect-[4/3] object-cover"
                     />
+                    {product.harvestedAtLabel && (
+                      <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-lg bg-white/95 px-2 py-1 text-[11px] font-semibold text-ink shadow-sm border border-blue-100">
+                        <Clock className="w-3 h-3 text-brand" aria-hidden="true" />
+                        <span>{product.harvestedAtLabel}</span>
+                      </span>
+                    )}
                   </Link>
                   <div className="p-4 space-y-2">
                     <div className="flex flex-wrap items-center justify-between gap-1.5">
-                      <OcopStarBadge stars={product.ocopStars} />
-                      <span className="font-mono text-[11px] text-muted tabular-nums">
+                      <OcopStarBadge stars={product.ocopStars} showIllustrative={false} />
+                      <span className="font-mono text-xs text-muted tabular-nums">
                         Lô {product.batchCode || product.sku}
                       </span>
                     </div>
@@ -335,7 +350,7 @@ export default function CatalogPage() {
                     {product.producer && (
                       <Link
                         to={`/gian-hang/${product.producer.slug}`}
-                        className="text-xs text-brand font-medium hover:underline block truncate"
+                        className="text-xs text-brand font-semibold hover:underline block truncate"
                       >
                         {product.producer.businessName}
                       </Link>
@@ -361,7 +376,7 @@ export default function CatalogPage() {
                     type="button"
                     onClick={() => handleAddCart(product)}
                     aria-label={`Thêm ${product.title} vào giỏ hàng`}
-                    className="min-h-[44px] min-w-[44px] px-3 rounded-xl border border-line bg-canvas hover:border-brand text-ink inline-flex items-center justify-center gap-1 text-xs font-semibold"
+                    className="min-h-[44px] min-w-[44px] px-3 rounded-xl border border-line bg-canvas hover:border-brand text-ink inline-flex items-center justify-center gap-1 text-xs sm:text-sm font-semibold"
                   >
                     <ShoppingCart className="w-4 h-4 text-brand" aria-hidden="true" />
                     <span>{addedId === product.id ? 'Đã thêm' : 'Giỏ'}</span>
@@ -382,7 +397,7 @@ export default function CatalogPage() {
                   type="button"
                   disabled={catalog.page <= 1}
                   onClick={() => updateQuery({ page: catalog.page - 1 })}
-                  className="min-h-[44px] px-3 rounded-xl border border-line bg-canvas text-sm font-semibold disabled:opacity-40 inline-flex items-center gap-1"
+                  className="min-h-[44px] px-3.5 rounded-xl border border-line bg-canvas text-sm font-semibold disabled:opacity-40 inline-flex items-center gap-1"
                 >
                   <ChevronLeft className="w-4 h-4" aria-hidden="true" />
                   <span>Trước</span>
@@ -391,7 +406,7 @@ export default function CatalogPage() {
                   type="button"
                   disabled={catalog.page >= catalog.totalPages}
                   onClick={() => updateQuery({ page: catalog.page + 1 })}
-                  className="min-h-[44px] px-3 rounded-xl border border-line bg-canvas text-sm font-semibold disabled:opacity-40 inline-flex items-center gap-1"
+                  className="min-h-[44px] px-3.5 rounded-xl border border-line bg-canvas text-sm font-semibold disabled:opacity-40 inline-flex items-center gap-1"
                 >
                   <span>Sau</span>
                   <ChevronRight className="w-4 h-4" aria-hidden="true" />

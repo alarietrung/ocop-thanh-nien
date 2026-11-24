@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "Chợ OCOP Thanh Niên — Đồng Nai",
-  "short_name": "OCOP Đồng Nai",
-  "description": "Kết nối 150+ sản phẩm OCOP 3-4 sao Đồng Nai lên sàn TMĐT, Video Studio Template và mạng lưới Đoàn viên Affiliate.",
+  "name": "Chợ OCOP Thanh Niên Đồng Nai",
+  "short_name": "Chợ OCOP TN",
+  "description": "Mua nông sản trực tiếp từ nhà vườn Đồng Nai, truy xuất nhật ký mùa vụ bằng mã QR, lịch livestream và du lịch trải nghiệm nhà vườn cùng đoàn viên thanh niên.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -29,9 +29,9 @@
       "purpose": "maskable"
     },
     {
-      "src": "./favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
+      "src": "./favicon.png",
+      "sizes": "64x64",
+      "type": "image/png"
     }
   ]
 }

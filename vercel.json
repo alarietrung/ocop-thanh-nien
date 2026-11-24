@@ -5,7 +5,7 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/((?!assets/|sw\\.js|manifest\\.webmanifest|favicon\\.svg|icon-192\\.png|icon-512\\.png|apple-touch-icon\\.png|pitch-deck\\.html|robots\\.txt).*)",
+      "source": "/((?!api/|assets/|branding/|sw\\.js|manifest\\.webmanifest|favicon\\.png|favicon\\.svg|icon-192\\.png|icon-512\\.png|apple-touch-icon\\.png|pitch-deck\\.html|robots\\.txt).*)",
       "destination": "/index.html"
     }
   ],

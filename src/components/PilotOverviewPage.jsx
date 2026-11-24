@@ -44,9 +44,9 @@ export default function PilotOverviewPage() {
         <div className="space-y-2 max-w-3xl">
           <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-brand">
             <CalendarCheck className="w-4 h-4" aria-hidden="true" />
-            <span>Hồ sơ triển khai Pilot &amp; Bài nộp Hackathon 2026</span>
+            <span>Hồ sơ triển khai thử nghiệm &amp; Bài nộp Hackathon 2026</span>
           </div>
-          <h1 className="text-2xl font-bold text-ink">Kế hoạch 90 ngày Go-Live 10 sản phẩm OCOP Đồng Nai</h1>
+          <h1 className="text-2xl font-bold text-ink">Kế hoạch 90 ngày ra mắt 10 sản phẩm OCOP Đồng Nai</h1>
           <p className="text-sm text-muted leading-relaxed">
             Phân tách rõ giữa <strong>chỉ tiêu KPI mục tiêu</strong> trong kế hoạch 90 ngày và <strong>trạng thái kiểm chứng kỹ thuật hiện tại</strong> của bản mẫu.
           </p>
@@ -129,7 +129,7 @@ export default function PilotOverviewPage() {
 
         <section className="bg-surface border border-line rounded-2xl p-5 sm:p-6 space-y-4">
           <div>
-            <h2 className="text-lg font-bold text-ink">Đăng ký cơ sở OCOP tham gia Pilot</h2>
+            <h2 className="text-lg font-bold text-ink">Đăng ký cơ sở OCOP tham gia thử nghiệm</h2>
             <p className="text-xs text-muted mt-1">
               Biểu mẫu công khai được thiết kế gắn bảo vệ Cloudflare Turnstile trước khi ghi API để chống gửi rác.
             </p>
@@ -217,7 +217,7 @@ export default function PilotOverviewPage() {
               className="w-full min-h-[44px] px-5 rounded-xl bg-brand hover:bg-brand-hover text-white text-sm font-semibold inline-flex items-center justify-center gap-2"
             >
               <Send className="w-4 h-4" aria-hidden="true" />
-              <span>{submitting ? 'Đang gửi...' : 'Gửi đăng ký tham gia Pilot'}</span>
+              <span>{submitting ? 'Đang gửi...' : 'Gửi đăng ký tham gia thử nghiệm'}</span>
             </button>
           </form>
         </section>

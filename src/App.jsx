@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Routes, Route, Link, Navigate } from 'react-router-dom';
+import { Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Compass } from 'lucide-react';
 import AppShell from './components/AppShell';
 import AccountRecoveryPage from './components/AccountRecoveryPage';
@@ -20,12 +20,15 @@ import {
   AffiliateLinksPage
 } from './components/AffiliatePages';
 import OpsDashboardPage from './components/OpsDashboardPage';
-import { getSupabaseConfig, loadActiveSession, setDemoPersona, signOutSession } from './services/authService';
+import OrderTrackingPage from './components/OrderTrackingPage';
+import FarmMapTourPage from './components/FarmMapTourPage';
+import VolunteerHoursPage from './components/VolunteerHoursPage';
+import { DEMO_PERSONAS, loadActiveSession, setDemoPersona, signOutSession } from './services/authService';
 
 function NotFoundPage() {
   return (
     <section className="max-w-lg mx-auto bg-surface border border-line rounded-2xl p-8 text-center space-y-4">
-      <Compass className="w-10 h-10 text-accent mx-auto" aria-hidden="true" />
+      <Compass className="w-10 h-10 text-brand mx-auto" aria-hidden="true" />
       <h1 className="text-xl font-bold text-ink">Không tìm thấy trang yêu cầu (404)</h1>
       <p className="text-sm text-muted">
         Đường dẫn bạn mở không tồn tại trong Chợ OCOP Thanh Niên. Hãy quay về cửa hàng nông sản Đồng Nai.
@@ -42,6 +45,7 @@ function NotFoundPage() {
 }
 
 export default function App() {
+  const navigate = useNavigate();
   const [session, setSession] = useState(() => loadActiveSession());
   const [isOnline, setIsOnline] = useState(
     typeof navigator !== 'undefined' ? navigator.onLine : true
@@ -58,11 +62,27 @@ export default function App() {
     };
   }, []);
 
+  // Chuyển vai trải nghiệm cục bộ: CHỈ hoạt động khi chưa đăng nhập tài khoản Supabase thật
+  // và KHÔNG BAO GIỜ cấp quyền hay token máy chủ thật.
   function handleSelectPersona(personaId) {
-    if (getSupabaseConfig().configured || session?.mode === 'supabase') return null;
+    if (session?.mode === 'supabase') return null;
     const next = setDemoPersona(personaId);
     setSession(next);
     return next;
+  }
+
+  function handleOpenSellerOrder(order) {
+    if (session?.mode !== 'supabase') {
+      const matchSeller = DEMO_PERSONAS.find(
+        (p) => p.role === 'seller' && p.producerId === order?.producerId
+      );
+      const next = setDemoPersona(matchSeller?.id || 'seller-batu');
+      setSession(next);
+    }
+    const qs = new URLSearchParams();
+    if (order?.orderCode) qs.set('highlight', order.orderCode);
+    if (order?.producerId) qs.set('garden', order.producerId);
+    navigate(`/chu-co-so/don-hang?${qs.toString()}`);
   }
 
   async function handleSignOut() {
@@ -74,6 +94,7 @@ export default function App() {
     <AppShell
       session={session}
       onAuthSessionChange={setSession}
+      onSelectPersona={handleSelectPersona}
       onSignOut={handleSignOut}
       isOnline={isOnline}
     >
@@ -87,8 +108,11 @@ export default function App() {
         <Route path="/gian-hang" element={<Navigate to="/gian-hang/nha-vuon-ba-tu" replace />} />
         <Route path="/gian-hang/:slug" element={<ProducerDetailPage />} />
 
-        {/* Màn 2: Đăng sản phẩm nhanh bằng ảnh và giọng nói */}
-        <Route path="/chu-co-so/dang-nhanh" element={<QuickPublishVoicePage />} />
+        {/* Màn 2: Đăng sản phẩm nhanh bằng ảnh, giọng nói & AI Gemini Flash (Điểm cộng A) */}
+        <Route
+          path="/chu-co-so/dang-nhanh"
+          element={<QuickPublishVoicePage session={session} isOnline={isOnline} />}
+        />
 
         {/* Màn 3: Chi tiết sản phẩm + QR truy xuất & Nhật ký mùa vụ */}
         <Route
@@ -102,8 +126,27 @@ export default function App() {
         />
         <Route path="/nhat-ky/:batchCode" element={<SeasonLogPage />} />
 
-        {/* Màn 4: Giỏ hàng và đặt hàng */}
-        <Route path="/gio-hang" element={<CartCheckoutPage />} />
+        {/* Màn 4: Giỏ hàng đa nhà vườn & đặt hàng */}
+        <Route
+          path="/gio-hang"
+          element={
+            <CartCheckoutPage
+              session={session}
+              onOpenSellerOrder={handleOpenSellerOrder}
+            />
+          }
+        />
+
+        {/* Tra cứu đơn hàng của khách */}
+        <Route
+          path="/tra-cuu-don"
+          element={
+            <OrderTrackingPage
+              session={session}
+              onOpenSellerOrder={handleOpenSellerOrder}
+            />
+          }
+        />
 
         {/* Màn 5: Quản lý đơn nhà vườn */}
         <Route
@@ -111,15 +154,29 @@ export default function App() {
           element={
             <SellerOrdersPage
               session={session}
+              onQuickSwitchSeller={(personaId = 'seller-batu') => handleSelectPersona(personaId)}
+            />
+          }
+        />
+
+        {/* Màn 6: Lịch livestream thanh niên hỗ trợ */}
+        <Route path="/lich-livestream" element={<LivestreamSchedulePage />} />
+
+        {/* Điểm cộng B: Bản đồ tương tác & Trải nghiệm nhà vườn */}
+        <Route path="/ban-do-vuon" element={<FarmMapTourPage isOnline={isOnline} />} />
+
+        {/* Điểm cộng C: Nhật ký giờ tình nguyện Đoàn viên & Chủ vườn duyệt */}
+        <Route
+          path="/tinh-nguyen"
+          element={
+            <VolunteerHoursPage
+              session={session}
               onQuickSwitchSeller={() => handleSelectPersona('seller-batu')}
             />
           }
         />
 
-        {/* Màn 6: Lịch livestream của thanh niên hỗ trợ */}
-        <Route path="/lich-livestream" element={<LivestreamSchedulePage />} />
-
-        {/* Các màn mở rộng giữ nguyên khả năng truy cập theo vai trò */}
+        {/* Các màn quản trị / hỗ trợ khác */}
         <Route
           path="/chu-co-so/san-pham"
           element={

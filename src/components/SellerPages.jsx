@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Plus,
   Send,
@@ -17,11 +17,16 @@ import {
   FileSpreadsheet,
   CheckCircle2,
   PackageOpen,
-  Trash2
+  Trash2,
+  Search,
+  PackageSearch,
+  Mic,
+  HeartHandshake
 } from 'lucide-react';
 import { PRODUCT_CATEGORIES, SAMPLE_CSV_IMPORT_TEMPLATE, VIDEO_TEMPLATES } from '../data/pilotData';
 import {
   commitOrderImportRows,
+  fetchAllProducers,
   fetchPublicCatalog,
   fetchSellerOrders,
   fetchSellerProducts,
@@ -1094,27 +1099,52 @@ export function VideoStudioPage() {
 }
 
 // =========================================================================
-// MÀN 5: QUẢN LÝ ĐƠN NHÀ VƯỜN (TẬN DỤNG MÀN CÓ SẴN + HIỆN ĐƠN TỪ GIỎ HÀNG MẪU)
+// MÀN 5: QUẢN LÝ ĐƠN NHÀ VƯỜN (KHÉP VÒNG NHẬN ĐƠN -> TRA CỨU KHÁCH + RLS THẬT)
 // =========================================================================
 export function SellerOrdersPage({ session, onQuickSwitchSeller }) {
-  const producerId =
-    session?.persona?.producerId ||
-    session?.user?.producerId ||
-    session?.user?.producerIds?.[0] ||
-    'prod-ba-tu-long-khanh';
+  const [searchParams] = useSearchParams();
+  const highlightCode = (searchParams.get('highlight') || '').trim().toUpperCase();
+  const gardenParam = searchParams.get('garden') || '';
+  const allProducers = fetchAllProducers();
+  const isSupabaseSeller = session?.mode === 'supabase';
+
+  const defaultProducerId = isSupabaseSeller
+    ? session?.user?.producerId || session?.user?.producerIds?.[0] || ''
+    : gardenParam || session?.persona?.producerId || 'prod-ba-tu-long-khanh';
+
+  const [selectedDemoProducerId, setSelectedDemoProducerId] = useState(defaultProducerId);
+  const producerId = isSupabaseSeller ? defaultProducerId : selectedDemoProducerId;
+
+  useEffect(() => {
+    if (!isSupabaseSeller && gardenParam) {
+      setSelectedDemoProducerId(gardenParam);
+    } else if (!isSupabaseSeller && session?.persona?.producerId) {
+      setSelectedDemoProducerId(session.persona.producerId);
+    }
+  }, [gardenParam, isSupabaseSeller, session?.persona?.producerId]);
 
   const [orders, setOrders] = useState([]);
   const [platformFilter, setPlatformFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState(highlightCode);
   const [loading, setLoading] = useState(true);
   const [csvText, setCsvText] = useState(SAMPLE_CSV_IMPORT_TEMPLATE);
   const [previewResult, setPreviewResult] = useState(null);
   const [importNotice, setImportNotice] = useState('');
+  const [lastUpdatedOrderCode, setLastUpdatedOrderCode] = useState('');
 
   async function loadOrders() {
+    if (!producerId) {
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      const data = await fetchSellerOrders({ producerId, token: session?.accessToken });
+      const data = await fetchSellerOrders({
+        producerId,
+        token: isSupabaseSeller ? session?.accessToken : ''
+      });
       setOrders(data || []);
     } catch (err) {
       setImportNotice(err?.message || 'Chưa tải được danh sách đơn hàng.');
@@ -1126,12 +1156,29 @@ export function SellerOrdersPage({ session, onQuickSwitchSeller }) {
   useEffect(() => {
     loadOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [producerId, session?.accessToken]);
+  }, [producerId, session?.accessToken, isSupabaseSeller]);
 
-  async function handleQuickStatus(orderId, nextStatus) {
+  useEffect(() => {
+    if (highlightCode) setSearchQuery(highlightCode);
+  }, [highlightCode]);
+
+  async function handleQuickStatus(order, nextStatus) {
     try {
-      await updateSellerOrderStatus({ orderId, producerId, nextStatus, token: session?.accessToken });
-      setImportNotice(`Đã cập nhật trạng thái đơn sang "${nextStatus}".`);
+      await updateSellerOrderStatus({
+        orderId: order.id,
+        producerId,
+        nextStatus,
+        token: isSupabaseSeller ? session?.accessToken : ''
+      });
+      const code = order.orderCode || order.externalOrderId;
+      const statusText =
+        nextStatus === 'confirmed'
+          ? 'Đã nhận đơn & đang chuẩn bị hàng'
+          : nextStatus === 'completed'
+            ? 'Hoàn thành giao/nhận'
+            : 'Đã hủy đơn';
+      setLastUpdatedOrderCode(code);
+      setImportNotice(`Đã cập nhật đơn ${code} sang trạng thái: "${statusText}". Khách tra cứu sẽ thấy ngay trạng thái mới!`);
       await loadOrders();
     } catch (err) {
       setImportNotice(err?.message || 'Không thể cập nhật trạng thái đơn.');
@@ -1150,11 +1197,11 @@ export function SellerOrdersPage({ session, onQuickSwitchSeller }) {
       const res = await commitOrderImportRows({
         rows: previewResult.rows,
         producerScopeId: producerId,
-        token: session?.accessToken
+        token: isSupabaseSeller ? session?.accessToken : ''
       });
       setImportNotice(
-        `Đã nhập ${res.insertedCount} đơn mới · Bỏ qua ${res.duplicateCount} đơn trùng khóa (platform + shop_id + external_order_id).` +
-          (res.rejected.length > 0 ? ` Từ chối ${res.rejected.length} dòng khác quyền cơ sở hoặc sai SKU.` : '')
+        `Đã nhập ${res.insertedCount} đơn mới · Bỏ qua ${res.duplicateCount} đơn trùng khóa.` +
+          (res.rejected.length > 0 ? ` Từ chối ${res.rejected.length} dòng khác quyền cơ sở hoặc sai mã SP.` : '')
       );
       await loadOrders();
     } catch (err) {
@@ -1162,9 +1209,14 @@ export function SellerOrdersPage({ session, onQuickSwitchSeller }) {
     }
   }
 
+  const cleanSearch = searchQuery.trim().toUpperCase();
   const filtered = orders.filter((o) => {
     if (platformFilter !== 'all' && o.platform !== platformFilter) return false;
     if (statusFilter !== 'all' && o.status !== statusFilter) return false;
+    if (cleanSearch) {
+      const hay = `${o.orderCode || ''} ${o.externalOrderId || ''} ${o.customerName || ''} ${o.customerPhone || ''} ${o.productTitle || ''}`.toUpperCase();
+      if (!hay.includes(cleanSearch)) return false;
+    }
     return true;
   });
 
@@ -1172,35 +1224,129 @@ export function SellerOrdersPage({ session, onQuickSwitchSeller }) {
     .filter((o) => o.status !== 'cancelled' && o.status !== 'refunded')
     .reduce((sum, o) => sum + o.grossAmountVnd, 0);
 
+  const currentProducer = allProducers.find((p) => p.id === producerId);
+
   return (
     <div className="space-y-5">
-      <section className="bg-surface border border-line rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
+      <section className="bg-surface border border-line rounded-2xl p-5 space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-brand">
+                Màn 5 · Quản lý đơn nhà vườn
+              </p>
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                  isSupabaseSeller
+                    ? 'bg-blue-50 text-brand border-blue-300'
+                    : 'bg-amber-50 text-amber-950 border-amber-300'
+                }`}
+              >
+                {isSupabaseSeller
+                  ? 'Tài khoản thật · Bảo vệ bởi Supabase RLS theo vườn'
+                  : 'Chế độ thử vai trò (Dữ liệu mẫu cục bộ — không cấp quyền hệ thống thật)'}
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-ink">
+              Đơn hàng tại {currentProducer?.businessName || 'Nhà vườn'}
+            </h1>
+            <p className="text-sm text-muted">
+              Mở đúng đơn khách vừa đặt, bấm <strong>Nhận đơn</strong> hoặc <strong>Hoàn thành</strong>. Trạng thái đồng bộ sang trang Tra cứu của khách và sổ hoa hồng đoàn viên.
+            </p>
+          </div>
+
+          <div className="px-4 py-3 rounded-xl bg-canvas border border-line tabular-nums shrink-0">
+            <p className="text-xs text-muted">Doanh thu lọc hiện tại</p>
+            <p className="text-xl font-extrabold text-brand">{formatVnd(validRevenue)}</p>
+          </div>
+        </div>
+
+        {/* Quick Farmer Actions + Demo Garden Selector */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-line">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-bold uppercase tracking-wider text-brand">Quản lý đơn nhà vườn</p>
-            {session?.persona?.role !== 'seller' && typeof onQuickSwitchSeller === 'function' && (
+            {!isSupabaseSeller && (
+              <>
+                <label htmlFor="seller-garden-switch" className="text-xs sm:text-sm font-semibold text-ink">
+                  Xem đơn của cơ sở:
+                </label>
+                <select
+                  id="seller-garden-switch"
+                  value={producerId}
+                  onChange={(e) => setSelectedDemoProducerId(e.target.value)}
+                  className="min-h-[44px] px-3 rounded-xl border border-line bg-canvas text-sm font-semibold text-ink"
+                >
+                  {allProducers.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.businessName}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+            {!isSupabaseSeller && session?.persona?.role !== 'seller' && typeof onQuickSwitchSeller === 'function' && (
               <button
                 type="button"
-                onClick={onQuickSwitchSeller}
-                className="text-xs font-semibold text-brand underline"
+                onClick={() => onQuickSwitchSeller('seller-batu')}
+                className="min-h-[44px] px-3.5 rounded-xl bg-blue-50 border border-brand text-brand text-xs sm:text-sm font-bold"
               >
-                Bật chế độ Chủ vườn Ba Tư
+                Bật chế độ thử vai Chủ vườn Ba Tư
               </button>
             )}
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-ink">Đơn hàng tại vườn &amp; Đa sàn</h1>
-          <p className="text-xs sm:text-sm text-muted mt-1">
-            Hiển thị ngay các đơn đặt từ Giỏ hàng (Giao tận nơi / Nhận tại vườn) cùng trạng thái xử lý và Import CSV mẫu.
-          </p>
-        </div>
-        <div className="px-4 py-3 rounded-xl bg-canvas border border-line tabular-nums shrink-0">
-          <p className="text-xs text-muted">Doanh thu mẫu (lọc hiện tại)</p>
-          <p className="text-xl font-extrabold text-ink">{formatVnd(validRevenue)}</p>
+
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to="/chu-co-so/dang-nhanh"
+              className="min-h-[44px] px-3.5 rounded-xl bg-brand hover:bg-brand-hover text-white text-xs sm:text-sm font-bold inline-flex items-center gap-1.5"
+            >
+              <Mic className="w-4 h-4" aria-hidden="true" />
+              <span>Đăng nhanh ảnh &amp; giọng</span>
+            </Link>
+            <Link
+              to="/tinh-nguyen"
+              className="min-h-[44px] px-3.5 rounded-xl border border-brand bg-blue-50 text-brand text-xs sm:text-sm font-bold inline-flex items-center gap-1.5"
+            >
+              <HeartHandshake className="w-4 h-4" aria-hidden="true" />
+              <span>Duyệt giờ tình nguyện</span>
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-2">
+      {importNotice && (
+        <div
+          className="bg-emerald-50 border border-emerald-300 text-emerald-950 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 text-sm font-semibold"
+          role="status"
+        >
+          <span>{importNotice}</span>
+          {lastUpdatedOrderCode && (
+            <Link
+              to={`/tra-cuu-don?code=${encodeURIComponent(lastUpdatedOrderCode)}`}
+              className="min-h-[44px] px-4 rounded-xl bg-brand hover:bg-brand-hover text-white text-xs sm:text-sm font-bold inline-flex items-center gap-1.5 shrink-0"
+            >
+              <PackageSearch className="w-4 h-4" aria-hidden="true" />
+              <span>Kiểm tra trên trang Tra cứu của khách</span>
+            </Link>
+          )}
+        </div>
+      )}
+
+      {/* Search & Filters */}
+      <div className="flex flex-col sm:flex-row flex-wrap gap-2.5">
+        <div className="relative flex-1 min-w-[220px]">
+          <label htmlFor="seller-order-search" className="sr-only">
+            Tìm theo mã đơn hoặc tên khách
+          </label>
+          <Search className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
+          <input
+            id="seller-order-search"
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Tìm theo mã đơn (DON-LK-...), tên hoặc SĐT khách..."
+            className="w-full min-h-[44px] pl-10 pr-3 rounded-xl border border-line bg-surface text-sm font-mono"
+          />
+        </div>
         <select
           aria-label="Lọc theo kênh"
           value={platformFilter}
@@ -1208,7 +1354,7 @@ export function SellerOrdersPage({ session, onQuickSwitchSeller }) {
           className="min-h-[44px] px-3 rounded-xl border border-line bg-surface text-sm"
         >
           <option value="all">Tất cả kênh</option>
-          <option value="direct_ocop">Đặt từ Chợ OCOP / Tại vườn</option>
+          <option value="direct_ocop">Đặt trực tiếp Chợ OCOP</option>
           <option value="tiktok">TikTok Shop</option>
           <option value="shopee">Shopee</option>
           <option value="lazada">Lazada</option>
@@ -1220,8 +1366,8 @@ export function SellerOrdersPage({ session, onQuickSwitchSeller }) {
           className="min-h-[44px] px-3 rounded-xl border border-line bg-surface text-sm"
         >
           <option value="all">Mọi trạng thái</option>
-          <option value="placed">Mới đặt</option>
-          <option value="confirmed">Đã xác nhận / Đang chuẩn bị</option>
+          <option value="placed">Mới đặt — Chờ nhận</option>
+          <option value="confirmed">Đã nhận — Chuẩn bị hàng</option>
           <option value="completed">Hoàn thành</option>
           <option value="refunded">Hoàn trả</option>
           <option value="cancelled">Đã hủy</option>
@@ -1233,60 +1379,95 @@ export function SellerOrdersPage({ session, onQuickSwitchSeller }) {
         <div className="bg-surface border border-line rounded-2xl p-6 animate-pulse h-36" />
       ) : filtered.length === 0 ? (
         <div className="bg-surface border border-line rounded-2xl p-8 text-center text-sm text-muted space-y-3">
-          <p>Chưa có đơn hàng nào khớp bộ lọc cho nhà vườn hiện tại.</p>
-          <Link to="/gian-hang/nha-vuon-ba-tu" className="text-brand font-semibold underline inline-block">
-            Mở Hồ sơ Nhà vườn Ba Tư để đặt thử đơn mẫu →
-          </Link>
+          <p className="font-semibold text-ink">Chưa có đơn hàng nào khớp bộ lọc cho nhà vườn hiện tại.</p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="ocop-secondary"
+              >
+                Xóa từ khóa tìm kiếm
+              </button>
+            )}
+            <Link to="/gian-hang/nha-vuon-ba-tu" className="ocop-primary">
+              Mở Hồ sơ Nhà vườn Ba Tư để đặt thử đơn
+            </Link>
+          </div>
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 gap-3 md:hidden">
-            {filtered.map((o) => (
-              <article key={o.id} className="bg-surface border border-line rounded-2xl p-4 space-y-2.5 tabular-nums">
-                <div className="flex items-center justify-between gap-2">
-                  <PlatformBadge platform={o.platform} />
-                  <OrderStatusBadge status={o.status} />
-                </div>
-                <p className="font-mono text-xs font-bold text-ink">{o.orderCode || o.externalOrderId}</p>
-                <p className="font-bold text-sm text-ink">{o.productTitle}</p>
-                {o.deliveryLabel && (
-                  <p className="text-xs text-brand font-medium">{o.deliveryLabel}</p>
-                )}
-                {o.customerName && (
-                  <p className="text-xs text-muted">
-                    Khách: {o.customerName} · {o.customerPhone}
-                  </p>
-                )}
-                <div className="flex items-center justify-between text-xs text-muted">
-                  <span>SL: {o.quantity}</span>
-                  <span className="text-base font-bold text-ink">{formatVnd(o.grossAmountVnd)}</span>
-                </div>
-                <div className="flex flex-wrap gap-2 pt-2 border-t border-line">
-                  {o.status === 'placed' && (
-                    <button
-                      type="button"
-                      onClick={() => handleQuickStatus(o.id, 'confirmed')}
-                      className="min-h-[40px] px-3 rounded-xl bg-brand text-white text-xs font-semibold"
-                    >
-                      Xác nhận &amp; Chuẩn bị hàng
-                    </button>
+            {filtered.map((o) => {
+              const code = o.orderCode || o.externalOrderId;
+              const isHighlighted = Boolean(highlightCode && code.toUpperCase() === highlightCode);
+              return (
+                <article
+                  key={o.id}
+                  className={`bg-surface rounded-2xl p-4 space-y-2.5 tabular-nums border-2 ${
+                    isHighlighted ? 'border-brand ring-2 ring-blue-200' : 'border-line'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <PlatformBadge platform={o.platform} />
+                    <OrderStatusBadge status={o.status} />
+                  </div>
+                  <p className="font-mono text-sm font-extrabold text-brand">{code}</p>
+                  <p className="font-bold text-sm text-ink">{o.productTitle}</p>
+                  {o.deliveryLabel && (
+                    <p className="text-xs text-brand font-semibold">{o.deliveryLabel}</p>
                   )}
-                  {o.status === 'confirmed' && (
-                    <button
-                      type="button"
-                      onClick={() => handleQuickStatus(o.id, 'completed')}
-                      className="min-h-[40px] px-3 rounded-xl bg-brand text-white text-xs font-semibold"
-                    >
-                      Hoàn thành giao/nhận
-                    </button>
+                  {o.customerName && (
+                    <p className="text-xs text-muted">
+                      Khách: <strong className="text-ink">{o.customerName}</strong> · {o.customerPhone}
+                    </p>
                   )}
-                </div>
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                  <OrderSourceBadge source={o.source} />
-                  <span className="text-xs text-muted">{formatDateTimeVn(o.orderedAt)}</span>
-                </div>
-              </article>
-            ))}
+                  <div className="flex items-center justify-between text-xs text-muted">
+                    <span>SL: {o.quantity}</span>
+                    <span className="text-base font-extrabold text-ink">{formatVnd(o.grossAmountVnd)}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 pt-2 border-t border-line">
+                    {o.status === 'placed' && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickStatus(o, 'confirmed')}
+                          className="flex-1 min-h-[44px] px-3.5 rounded-xl bg-brand hover:bg-brand-hover text-white text-sm font-bold"
+                        >
+                          Nhận đơn &amp; Chuẩn bị hàng
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleQuickStatus(o, 'cancelled')}
+                          className="min-h-[44px] px-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-900 text-xs font-semibold"
+                        >
+                          Hủy
+                        </button>
+                      </>
+                    )}
+                    {o.status === 'confirmed' && (
+                      <button
+                        type="button"
+                        onClick={() => handleQuickStatus(o, 'completed')}
+                        className="flex-1 min-h-[44px] px-3.5 rounded-xl bg-ink text-white text-sm font-bold"
+                      >
+                        Đánh dấu hoàn thành
+                      </button>
+                    )}
+                    <Link
+                      to={`/tra-cuu-don?code=${encodeURIComponent(code)}`}
+                      className="min-h-[44px] px-3 rounded-xl border border-line bg-canvas text-xs font-semibold text-brand inline-flex items-center"
+                    >
+                      Tra cứu
+                    </Link>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <OrderSourceBadge source={o.source} />
+                    <span className="text-xs text-muted">{formatDateTimeVn(o.orderedAt)}</span>
+                  </div>
+                </article>
+              );
+            })}
           </div>
 
           <div className="hidden md:block bg-surface border border-line rounded-2xl overflow-x-auto">
@@ -1295,140 +1476,165 @@ export function SellerOrdersPage({ session, onQuickSwitchSeller }) {
                 <tr className="border-b border-line bg-canvas text-xs text-muted">
                   <th className="py-3 px-4 font-semibold">Mã đơn</th>
                   <th className="py-3 px-4 font-semibold">Sản phẩm &amp; Khách đặt</th>
-                  <th className="py-3 px-4 font-semibold">Hình thức nhận / Nguồn</th>
+                  <th className="py-3 px-4 font-semibold">Địa điểm nhận / Kênh</th>
                   <th className="py-3 px-4 font-semibold text-right">Tổng tiền</th>
                   <th className="py-3 px-4 font-semibold">Trạng thái &amp; Xử lý</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {filtered.map((o) => (
-                  <tr key={o.id} className="hover:bg-canvas/50">
-                    <td className="py-3 px-4 font-mono text-xs font-bold text-ink">
-                      {o.orderCode || o.externalOrderId}
-                      <p className="font-sans font-normal text-muted mt-0.5">{formatDateTimeVn(o.orderedAt)}</p>
-                    </td>
-                    <td className="py-3 px-4">
-                      <p className="font-semibold text-ink">{o.productTitle}</p>
-                      <p className="text-xs text-muted">
-                        SKU {o.sku} · SL {o.quantity}
-                        {o.customerName ? ` · Khách: ${o.customerName} (${o.customerPhone})` : ''}
-                      </p>
-                    </td>
-                    <td className="py-3 px-4 space-y-1">
-                      <div className="flex items-center gap-1.5">
-                        <PlatformBadge platform={o.platform} />
-                        <OrderSourceBadge source={o.source} />
-                      </div>
-                      {o.deliveryLabel && <p className="text-xs text-brand font-medium">{o.deliveryLabel}</p>}
-                    </td>
-                    <td className="py-3 px-4 text-right font-bold text-ink">{formatVnd(o.grossAmountVnd)}</td>
-                    <td className="py-3 px-4 space-y-1.5">
-                      <div>
-                        <OrderStatusBadge status={o.status} />
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {o.status === 'placed' && (
-                          <button
-                            type="button"
-                            onClick={() => handleQuickStatus(o.id, 'confirmed')}
-                            className="min-h-[36px] px-2.5 rounded-lg bg-brand text-white text-xs font-semibold"
-                          >
-                            Xác nhận chuẩn bị
-                          </button>
+                {filtered.map((o) => {
+                  const code = o.orderCode || o.externalOrderId;
+                  const isHighlighted = Boolean(highlightCode && code.toUpperCase() === highlightCode);
+                  return (
+                    <tr
+                      key={o.id}
+                      className={isHighlighted ? 'bg-blue-50/90' : 'hover:bg-canvas/50'}
+                    >
+                      <td className="py-3.5 px-4 font-mono text-xs font-extrabold text-brand align-top">
+                        {code}
+                        <p className="font-sans font-normal text-muted mt-0.5">{formatDateTimeVn(o.orderedAt)}</p>
+                        <Link
+                          to={`/tra-cuu-don?code=${encodeURIComponent(code)}`}
+                          className="font-sans text-[11px] font-semibold text-brand underline mt-1 inline-block"
+                        >
+                          Xem phía khách →
+                        </Link>
+                      </td>
+                      <td className="py-3.5 px-4 align-top">
+                        <p className="font-bold text-ink">{o.productTitle}</p>
+                        <p className="text-xs text-muted">
+                          Mã SP {o.sku} · SL {o.quantity}
+                          {o.customerName ? ` · Khách: ${o.customerName} (${o.customerPhone})` : ''}
+                        </p>
+                        {o.affiliateCode && (
+                          <p className="text-xs text-emerald-800 font-medium mt-0.5">
+                            Qua link đoàn viên /{o.affiliateCode} (HH ước tính {formatVnd(o.commissionVnd)})
+                          </p>
                         )}
-                        {o.status === 'confirmed' && (
-                          <button
-                            type="button"
-                            onClick={() => handleQuickStatus(o.id, 'completed')}
-                            className="min-h-[36px] px-2.5 rounded-lg bg-ink text-white text-xs font-semibold"
-                          >
-                            Đánh dấu hoàn thành
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="py-3.5 px-4 space-y-1 align-top">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <PlatformBadge platform={o.platform} />
+                          <OrderSourceBadge source={o.source} />
+                        </div>
+                        {o.deliveryLabel && <p className="text-xs text-brand font-semibold">{o.deliveryLabel}</p>}
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-extrabold text-ink align-top">{formatVnd(o.grossAmountVnd)}</td>
+                      <td className="py-3.5 px-4 space-y-2 align-top">
+                        <div>
+                          <OrderStatusBadge status={o.status} />
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {o.status === 'placed' && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleQuickStatus(o, 'confirmed')}
+                                className="min-h-[44px] px-3.5 rounded-xl bg-brand hover:bg-brand-hover text-white text-xs font-bold"
+                              >
+                                Nhận đơn &amp; chuẩn bị
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleQuickStatus(o, 'cancelled')}
+                                className="min-h-[44px] px-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-900 text-xs font-semibold"
+                              >
+                                Hủy
+                              </button>
+                            </>
+                          )}
+                          {o.status === 'confirmed' && (
+                            <button
+                              type="button"
+                              onClick={() => handleQuickStatus(o, 'completed')}
+                              className="min-h-[44px] px-3.5 rounded-xl bg-ink hover:bg-slate-800 text-white text-xs font-bold"
+                            >
+                              Đánh dấu hoàn thành
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </>
       )}
 
-      {/* CSV Import Box with Error Preview & Anti-Duplicate Test */}
-      <section className="bg-surface border border-line rounded-2xl p-5 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+      {/* CSV Import Box (secondary collapsible for advanced seller/ops use) */}
+      <details className="bg-surface border border-line rounded-2xl p-5">
+        <summary className="cursor-pointer list-none flex flex-wrap items-center justify-between gap-2 font-bold text-ink">
+          <span className="flex items-center gap-2">
             <FileSpreadsheet className="w-5 h-5 text-brand" aria-hidden="true" />
-            <h2 className="text-base font-bold text-ink">Import đơn mẫu từ CSV (Kiểm lỗi &amp; Chống trùng)</h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => setCsvText(SAMPLE_CSV_IMPORT_TEMPLATE)}
-            className="text-xs font-semibold text-brand underline min-h-[36px]"
-          >
-            Nạp lại mẫu chuẩn
-          </button>
-        </div>
-
-        <label htmlFor="seller-csv-input" className="block text-xs text-muted">
-          Cột bắt buộc: platform, shop_id, external_order_id, sku, quantity, gross_amount_vnd
-        </label>
-        <textarea
-          id="seller-csv-input"
-          rows={4}
-          value={csvText}
-          onChange={(e) => setCsvText(e.target.value)}
-          className="w-full p-3 rounded-xl border border-line bg-canvas font-mono text-xs"
-        />
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={handlePreviewCsv}
-            className="min-h-[44px] px-4 rounded-xl border border-line bg-canvas text-sm font-semibold text-ink"
-          >
-            Kiểm tra trước (Preview lỗi)
-          </button>
-          {previewResult && previewResult.rows.length > 0 && (
+            <span>Nhập đơn hàng mẫu từ tệp CSV (Kiểm lỗi &amp; Chống trùng)</span>
+          </span>
+          <span className="text-xs text-brand font-semibold">Mở rộng / Thu gọn</span>
+        </summary>
+        <div className="space-y-4 pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label htmlFor="seller-csv-input" className="text-xs text-muted">
+              Cột bắt buộc: platform, shop_id, external_order_id, sku, quantity, gross_amount_vnd
+            </label>
             <button
               type="button"
-              onClick={handleCommitCsv}
-              className="min-h-[44px] px-5 rounded-xl bg-brand hover:bg-brand-hover text-white text-sm font-semibold inline-flex items-center gap-2"
+              onClick={() => setCsvText(SAMPLE_CSV_IMPORT_TEMPLATE)}
+              className="text-xs font-semibold text-brand underline min-h-[36px]"
             >
-              <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
-              <span>Xác nhận nhập {previewResult.rows.length} dòng hợp lệ</span>
+              Nạp lại mẫu chuẩn
             </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setPreviewResult(null)}
-            className="min-h-[44px] px-3 rounded-xl text-xs font-semibold text-muted inline-flex items-center gap-1"
-          >
-            <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
-            <span>Xóa preview</span>
-          </button>
-        </div>
-
-        {previewResult && (
-          <div className="p-3.5 rounded-xl bg-canvas border border-line text-xs space-y-1.5">
-            <p className="font-bold text-ink">
-              Kết quả đọc CSV: {previewResult.rows.length} dòng hợp lệ · {previewResult.errors.length} dòng lỗi
-            </p>
-            {previewResult.errors.map((err, i) => (
-              <p key={i} className="text-rose-700">
-                • Dòng {err.line}: {err.message}
-              </p>
-            ))}
           </div>
-        )}
+          <textarea
+            id="seller-csv-input"
+            rows={4}
+            value={csvText}
+            onChange={(e) => setCsvText(e.target.value)}
+            className="w-full p-3 rounded-xl border border-line bg-canvas font-mono text-xs"
+          />
 
-        {importNotice && (
-          <p className="text-xs sm:text-sm font-medium text-emerald-950 bg-blue-50 border border-blue-200 rounded-xl p-3" role="status">
-            {importNotice}
-          </p>
-        )}
-      </section>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handlePreviewCsv}
+              className="min-h-[44px] px-4 rounded-xl border border-line bg-canvas text-sm font-semibold text-ink"
+            >
+              Kiểm tra trước (Xem lỗi)
+            </button>
+            {previewResult && previewResult.rows.length > 0 && (
+              <button
+                type="button"
+                onClick={handleCommitCsv}
+                className="min-h-[44px] px-5 rounded-xl bg-brand hover:bg-brand-hover text-white text-sm font-semibold inline-flex items-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
+                <span>Xác nhận nhập {previewResult.rows.length} dòng hợp lệ</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setPreviewResult(null)}
+              className="min-h-[44px] px-3 rounded-xl text-xs font-semibold text-muted inline-flex items-center gap-1"
+            >
+              <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>Xóa xem trước</span>
+            </button>
+          </div>
+
+          {previewResult && (
+            <div className="p-3.5 rounded-xl bg-canvas border border-line text-xs space-y-1.5">
+              <p className="font-bold text-ink">
+                Kết quả đọc CSV: {previewResult.rows.length} dòng hợp lệ · {previewResult.errors.length} dòng lỗi
+              </p>
+              {previewResult.errors.map((err, i) => (
+                <p key={i} className="text-rose-700">
+                  • Dòng {err.line}: {err.message}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      </details>
     </div>
   );
 }

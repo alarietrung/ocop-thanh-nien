@@ -20,18 +20,19 @@ export default function AccountRecoveryPage() {
   },[confirmation]);
   async function submit(event) {
     event.preventDefault();
-    if(password!==repeat){setError('Hai mật khẩu chưa khớp.');return;}
+    if (password.length < 8) { setError('Mật khẩu mới cần ít nhất 8 ký tự.'); return; }
+    if (password !== repeat) { setError('Hai mật khẩu chưa khớp.'); return; }
     setError('');
     setBusy(true);
     try {
-      await resetAccountPassword(password,token);
+      await resetAccountPassword(password, token);
       setToken('');
       setPassword('');
       setRepeat('');
       setDone(true);
-    } catch(failure) {
-      setError(failure.message||'Không thể đổi mật khẩu. Hãy yêu cầu liên kết mới.');
-    } finally {setBusy(false);}
+    } catch (failure) {
+      setError(failure.message || 'Không thể đổi mật khẩu. Hãy yêu cầu liên kết mới.');
+    } finally { setBusy(false); }
   }
   return (
     <section className="mx-auto max-w-lg rounded-3xl border border-line bg-white p-6 shadow-sm sm:p-8">

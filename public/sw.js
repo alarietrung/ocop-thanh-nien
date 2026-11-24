@@ -1,7 +1,16 @@
-const SHELL_CACHE = 'ocop-dn-shell-v1';
-const ASSET_CACHE = 'ocop-dn-assets-v1';
+const SHELL_CACHE = 'ocop-dn-shell-v2';
+const ASSET_CACHE = 'ocop-dn-assets-v2';
 
-const SHELL_URLS = ['./', './index.html', './manifest.webmanifest', './favicon.svg'];
+const SHELL_URLS = [
+  './',
+  './index.html',
+  './manifest.webmanifest',
+  './favicon.png',
+  './branding/ocop-mark-256.png',
+  './branding/doan-tncs-hcm.png',
+  './branding/hoi-lhtn-vn.svg',
+  './branding/hoi-sv-vn.svg'
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -39,7 +48,6 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.includes('/api/')) return;
   if (request.headers.has('Authorization')) return;
 
-  // Navigation requests: network-first so fresh deployments never serve stale shell
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
@@ -53,7 +61,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Hashed build assets: cache-first
   if (url.pathname.includes('/assets/')) {
     event.respondWith(
       caches.match(request).then(
@@ -71,7 +78,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static files in public/
   event.respondWith(
     fetch(request)
       .then((response) => {

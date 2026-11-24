@@ -10,53 +10,53 @@ export const DEMO_PERSONAS = [
     id: 'public',
     role: 'public',
     label: 'Khách tham quan / Người mua',
-    name: 'Khách xem Chợ OCOP',
-    subtitle: 'Xem Hồ sơ Nhà vườn Ba Tư, quét QR nhật ký & đặt hàng mẫu',
+    name: 'Khách mua Chợ OCOP',
+    subtitle: 'Xem Hồ sơ Nhà vườn Ba Tư, quét QR nhật ký, đặt hàng & tra cứu đơn',
     producerId: PRIMARY_FARMER_PRODUCER_ID,
     affiliateId: null
   },
   {
     id: 'seller-batu',
     role: 'seller',
-    label: 'Nhà vườn Ba Tư — Long Khánh (2,5 ha)',
-    name: 'Chú Ba Tư (Giả lập)',
-    subtitle: 'Đăng nhanh ảnh/giọng nói, quản lý 5 sản phẩm & xử lý đơn vườn',
+    label: 'Chủ vườn Ba Tư — Long Khánh (2,5 ha)',
+    name: 'Chú Ba Tư (Chế độ thử vai)',
+    subtitle: 'Đăng nhanh ảnh/giọng nói/AI, xử lý đơn vườn & duyệt giờ tình nguyện',
     producerId: PRIMARY_FARMER_PRODUCER_ID,
     affiliateId: null
   },
   {
     id: 'seller-tantrieu',
     role: 'seller',
-    label: 'Chủ cơ sở OCOP — Làng bưởi Tân Triều',
-    name: 'Trần Thị Thu Hà (Giả lập)',
-    subtitle: 'Quản lý SKU Tân Triều, Video Studio & Đơn hàng (Demo)',
+    label: 'Chủ cơ sở — Làng bưởi Tân Triều',
+    name: 'Trần Thị Thu Hà (Chế độ thử vai)',
+    subtitle: 'Quản lý sản phẩm & xử lý đơn tách riêng của cơ sở Tân Triều',
     producerId: 'prod-tan-trieu-pomelo',
     affiliateId: null
   },
   {
     id: 'seller-dinhquan',
     role: 'seller',
-    label: 'Chủ cơ sở OCOP — Điều Định Quán',
-    name: 'Nguyễn Văn Hùng (Giả lập)',
-    subtitle: 'Quản lý SKU Định Quán, kiểm tra phân tách chủ thể (Demo)',
+    label: 'Chủ cơ sở — HTX Điều Định Quán',
+    name: 'Nguyễn Văn Hùng (Chế độ thử vai)',
+    subtitle: 'Quản lý sản phẩm & đơn hàng tách riêng của HTX Định Quán',
     producerId: 'prod-dinh-quan-cashew',
     affiliateId: null
   },
   {
     id: 'affiliate-vy',
     role: 'affiliate',
-    label: 'Đoàn viên hỗ trợ — Minh Anh (Long Khánh)',
-    name: 'Đoàn viên Minh Anh (Giả lập)',
-    subtitle: 'Hỗ trợ livestream vườn Ba Tư, lấy link & xem hoa hồng (Demo)',
+    label: 'Đoàn viên hỗ trợ — Minh Anh (Xuân An)',
+    name: 'Đoàn viên Minh Anh (Chế độ thử vai)',
+    subtitle: 'Tạo link giới thiệu, đối soát đơn/hoa hồng & ghi giờ tình nguyện',
     producerId: null,
     affiliateId: 'aff-member-1'
   },
   {
     id: 'affiliate-bao',
     role: 'affiliate',
-    label: 'Đoàn viên hỗ trợ — Hoàng Phúc',
-    name: 'Đoàn viên Hoàng Phúc (Giả lập)',
-    subtitle: 'Kiểm tra phân tách link & hoa hồng giữa hai đoàn viên (Demo)',
+    label: 'Đoàn viên hỗ trợ — Hoàng Phúc (CĐ Đồng Nai)',
+    name: 'Đoàn viên Hoàng Phúc (Chế độ thử vai)',
+    subtitle: 'Quản lý link giới thiệu & ghi nhật ký giờ tình nguyện',
     producerId: null,
     affiliateId: 'aff-member-2'
   },
@@ -64,8 +64,8 @@ export const DEMO_PERSONAS = [
     id: 'ops-coordinator',
     role: 'ops',
     label: 'Điều phối Tỉnh đoàn / Sở Công Thương',
-    name: 'Cán bộ Điều phối Pilot',
-    subtitle: 'Duyệt SKU, Import CSV, Đối soát & Audit Log (Demo)',
+    name: 'Cán bộ Điều phối (Chế độ thử vai)',
+    subtitle: 'Duyệt sản phẩm, đối soát đơn & xem nhật ký hệ thống mẫu',
     producerId: null,
     affiliateId: null
   }
@@ -104,6 +104,7 @@ export function loadActiveSession() {
   };
 }
 
+// Chuyển vai trải nghiệm cục bộ — KHÔNG cấp quyền máy chủ hay Supabase RLS thật
 export function setDemoPersona(personaId) {
   const persona = DEMO_PERSONAS.find((p) => p.id === personaId) || DEMO_PERSONAS[0];
   saveJson(DEMO_SESSION_KEY, persona.id);

@@ -1,33 +1,49 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   addDemoLivestream,
+  addSeasonNoteDraft,
   addToCart,
+  addVolunteerLog,
   commitOrderImportRows,
   createAffiliateLink,
+  createSupportRequest,
+  createVisitRequest,
   deactivateAffiliateLink,
   fetchAffiliateCommission,
   fetchLivestreamSchedule,
   fetchOpsDashboard,
+  fetchOrderByCode,
   fetchProducerBySlug,
   fetchProductBySlug,
   fetchPublicCatalog,
   fetchSeasonLogByBatch,
   fetchSellerOrders,
   fetchSellerProducts,
+  fetchSupportRequests,
+  fetchVisitRequests,
+  fetchVolunteerLogs,
+  getVolunteerTotals,
+  groupCartByProducer,
   loadCart,
   lookupRedirectCode,
   placeCartOrder,
   publishQuickGardenProduct,
   reconcileOrderOps,
+  recordDirectReferralVisit,
   recordIntentionalVisit,
   resetPilotState,
   reviewProductOps,
+  reviewVolunteerLog,
+  submitMultiGardenOrder,
   submitSellerProductForReview,
+  syncSeasonNoteDraftToBatch,
   updateCartQuantity,
   updateSellerOrderStatus,
   upsertSellerProduct
 } from './ocopStore';
 import { parseOrderImportCsv } from '../utils/formatters';
+import { buildLivestreamIcs } from '../utils/icsCalendar';
+import { buildPublicTraceUrl, buildTraceQrSvgDataUri } from '../utils/qrSvg';
 
 function installMemoryStorage() {
   const store = {};
@@ -39,7 +55,7 @@ function installMemoryStorage() {
   };
 }
 
-describe('ocopStore vertical pilot flows & role isolation', () => {
+describe('ocopStore vertical flows, multi-garden cart, referral reconciliation & 3 bonuses', () => {
   beforeEach(() => {
     installMemoryStorage();
     resetPilotState();
@@ -56,22 +72,19 @@ describe('ocopStore vertical pilot flows & role isolation', () => {
 
     const link = await createAffiliateLink({
       affiliateId: 'aff-member-1',
-      affiliateName: 'Thảo Vy',
+      affiliateName: 'Đoàn viên Minh Anh',
       productId: first.id,
       platform: 'shopee'
     });
     expect(link.code).toHaveLength(10);
 
-    // Preview lookup must NOT increment clicks
     const preview = await lookupRedirectCode(link.code);
     expect(preview.clicksCount).toBe(0);
 
-    // Intentional visit increments click and validates target URL
     const visit = await recordIntentionalVisit(link.code);
     expect(visit.clicksCount).toBe(1);
     expect(visit.targetUrl).toMatch(/^https:\/\/shopee\.vn\//);
 
-    // Deactivating prevents subsequent visits and another affiliate cannot deactivate
     await expect(
       deactivateAffiliateLink({ id: link.id, affiliateId: 'aff-member-2' })
     ).rejects.toThrow();
@@ -97,7 +110,6 @@ describe('ocopStore vertical pilot flows & role isolation', () => {
     });
     expect(created.status).toBe('draft');
 
-    // Seller B cannot mutate Seller A product
     await expect(
       submitSellerProductForReview({ id: created.id, producerId: 'prod-dinh-quan-cashew' })
     ).rejects.toThrow();
@@ -146,13 +158,11 @@ describe('ocopStore vertical pilot flows & role isolation', () => {
     expect(netForOrder).toBe(0);
   });
 
-  it('completes the 6-screen Round 1 flow for Nha vuon Ba Tu (Long Khanh)', async () => {
-    // Screen 1: Nha vuon Ba Tu profile & 5 products (38k - 120k)
+  it('completes the 6-screen flow for Nha vuon Ba Tu including order tracking after update', async () => {
     const garden = await fetchProducerBySlug('nha-vuon-ba-tu');
     expect(garden.producer?.businessName).toContain('Nhà vườn Ba Tư');
     expect(garden.products.length).toBeGreaterThanOrEqual(5);
 
-    // Screen 2: Quick publish via photo + simulated voice
     const quick = publishQuickGardenProduct({
       title: 'Chôm chôm đường hái mới',
       priceVnd: 42000,
@@ -162,11 +172,9 @@ describe('ocopStore vertical pilot flows & role isolation', () => {
     });
     expect(quick.sku).toMatch(/^NVBT-/);
 
-    // Screen 3: Product detail + QR Season Log (3 stages)
     const log = fetchSeasonLogByBatch(quick.batchCode);
     expect(log?.milestones).toHaveLength(3);
 
-    // Screen 4: Cart add -> quantity change -> pickup order checkout
     addToCart(quick, 2);
     updateCartQuantity(quick.id, 3);
     expect(loadCart()[0].quantity).toBe(3);
@@ -181,7 +189,6 @@ describe('ocopStore vertical pilot flows & role isolation', () => {
     expect(createdOrder.shippingFeeVnd).toBe(0);
     expect(loadCart()).toHaveLength(0);
 
-    // Screen 5: Order appears in Seller Orders & status updates cleanly
     const baTuOrders = await fetchSellerOrders({ producerId: 'prod-ba-tu-long-khanh' });
     expect(baTuOrders.some((o) => o.orderCode === createdOrder.orderCode)).toBe(true);
     const updated = await updateSellerOrderStatus({
@@ -191,11 +198,164 @@ describe('ocopStore vertical pilot flows & role isolation', () => {
     });
     expect(updated.status).toBe('confirmed');
 
-    // Screen 6: Youth supporter livestream schedule
+    // Buyer tracking sees updated status immediately
+    const tracked = fetchOrderByCode(createdOrder.orderCode);
+    expect(tracked?.status).toBe('confirmed');
+
     const addedLive = addDemoLivestream({
       supporterName: 'Đoàn viên Minh Anh',
       productSummary: 'Chôm chôm nhãn 45k/kg'
     });
     expect(fetchLivestreamSchedule().some((s) => s.id === addedLive.id)).toBe(true);
+    const ics = buildLivestreamIcs(addedLive);
+    expect(ics).toContain('BEGIN:VCALENDAR');
+    expect(ics).toContain('BEGIN:VEVENT');
+  });
+
+  it('splits multi-garden cart by exact pickup point and preserves failed garden items on partial submission', async () => {
+    const ri6 = (await fetchProductBySlug('sau-rieng-ri6-vuon-ba-tu-long-khanh')).product;
+    const pomelo = (await fetchProductBySlug('vo-buoi-say-deo-tan-trieu-250g')).product;
+
+    addToCart(ri6, 1);
+    addToCart(pomelo, 2);
+    const groups = groupCartByProducer(loadCart());
+    expect(groups).toHaveLength(2);
+    expect(groups.find((g) => g.producerId === 'prod-ba-tu-long-khanh')?.producer.pickupPoint).toContain('Long Khánh');
+    expect(groups.find((g) => g.producerId === 'prod-tan-trieu-pomelo')?.producer.pickupPoint).toContain('Tân Triều');
+
+    // Simulate partial submission: Ba Tu succeeds, Tan Trieu fails -> Tan Trieu remains in cart!
+    const partialRes = await submitMultiGardenOrder(
+      {
+        customerName: 'Khách đặt 2 vườn',
+        customerPhone: '0909888777',
+        deliveryByProducer: {
+          'prod-ba-tu-long-khanh': 'pickup',
+          'prod-tan-trieu-pomelo': 'pickup'
+        }
+      },
+      {
+        submitGardenOrderOverride: async ({ group }) => {
+          if (group.producerId === 'prod-tan-trieu-pomelo') {
+            throw new Error('Mất kết nối tạm thời tới cơ sở Tân Triều.');
+          }
+          return {
+            id: 'ord-part-1',
+            orderCode: 'DON-LK-PART1',
+            producerId: group.producerId,
+            producerName: group.producer.businessName
+          };
+        }
+      }
+    );
+    expect(partialRes.partial).toBe(true);
+    expect(partialRes.succeededOrders).toHaveLength(1);
+    expect(partialRes.failedGroups).toHaveLength(1);
+    const remainingCart = loadCart();
+    expect(remainingCart).toHaveLength(1);
+    expect(remainingCart[0].producerId).toBe('prod-tan-trieu-pomelo');
+
+    // Now submit remaining item cleanly and verify exact Tân Triều pickup point
+    const finalRes = await submitMultiGardenOrder({
+      customerName: 'Khách đặt 2 vườn',
+      customerPhone: '0909888777',
+      deliveryByProducer: { 'prod-tan-trieu-pomelo': 'pickup' }
+    });
+    expect(finalRes.partial).toBe(false);
+    expect(finalRes.succeededOrders[0].deliveryLabel).toContain('Tân Triều');
+    expect(finalRes.succeededOrders[0].deliveryLabel).not.toContain('Nhà vườn Ba Tư');
+    expect(loadCart()).toHaveLength(0);
+  });
+
+  it('tracks youth referral click -> direct cart purchase -> commission reconciliation & seller completion', async () => {
+    const ri6 = (await fetchProductBySlug('sau-rieng-ri6-vuon-ba-tu-long-khanh')).product;
+    const link = await createAffiliateLink({
+      affiliateId: 'aff-member-1',
+      affiliateName: 'Đoàn viên Minh Anh',
+      productId: ri6.id,
+      platform: 'direct_ocop'
+    });
+
+    const visit = await recordDirectReferralVisit(link.code);
+    expect(visit.clicksCount).toBe(1);
+    addToCart(visit.product, 2);
+
+    const res = await submitMultiGardenOrder({
+      customerName: 'Khách từ link đoàn viên',
+      customerPhone: '0903334445',
+      deliveryByProducer: { 'prod-ba-tu-long-khanh': 'pickup' }
+    });
+    const ord = res.succeededOrders[0];
+    expect(ord.affiliateCode).toBe(link.code);
+    expect(ord.commissionVnd).toBe(23000); // 2 * 115,000 * 10%
+
+    const beforeComplete = await fetchAffiliateCommission({ affiliateId: 'aff-member-1' });
+    expect(beforeComplete.orders.some((o) => o.orderCode === ord.orderCode)).toBe(true);
+
+    await updateSellerOrderStatus({
+      orderId: ord.id,
+      producerId: 'prod-ba-tu-long-khanh',
+      nextStatus: 'completed'
+    });
+
+    const afterComplete = await fetchAffiliateCommission({ affiliateId: 'aff-member-1' });
+    expect(afterComplete.summary.availableVnd).toBeGreaterThanOrEqual(23000);
+  });
+
+  it('supports Bonus B farm visit booking, Bonus C volunteer approval, offline voice log sync, and QR generation', () => {
+    // Bonus B: Farm tour booking
+    const booking = createVisitRequest({
+      producerId: 'prod-ba-tu-long-khanh',
+      packageName: 'Hái chôm chôm tại vườn',
+      visitorName: 'Gia đình chị Hương',
+      visitorPhone: '0908111222',
+      visitDate: '2026-12-01',
+      timeSlot: 'Sáng 08:00 – 10:00',
+      guestsCount: 4
+    });
+    expect(fetchVisitRequests('prod-ba-tu-long-khanh').some((v) => v.id === booking.id)).toBe(true);
+
+    // Bonus C: Volunteer hours + Farmer approval
+    const beforeTotals = getVolunteerTotals(fetchVolunteerLogs());
+    const minhAnhBefore = beforeTotals.find((m) => m.id === 'aff-member-1').approvedHours;
+
+    const newLog = addVolunteerLog({
+      memberId: 'aff-member-1',
+      producerId: 'prod-ba-tu-long-khanh',
+      activityDate: '2026-11-24',
+      taskTitle: 'Hỗ trợ dán mã QR lô chôm chôm chiều',
+      hours: 2.5
+    });
+    expect(newLog.status).toBe('pending');
+    expect(getVolunteerTotals(fetchVolunteerLogs()).find((m) => m.id === 'aff-member-1').approvedHours).toBe(minhAnhBefore);
+
+    reviewVolunteerLog({ logId: newLog.id, decision: 'approved', producerId: 'prod-ba-tu-long-khanh' });
+    expect(getVolunteerTotals(fetchVolunteerLogs()).find((m) => m.id === 'aff-member-1').approvedHours).toBe(
+      minhAnhBefore + 2.5
+    );
+
+    // One-tap youth support
+    const req = createSupportRequest({
+      producerId: 'prod-ba-tu-long-khanh',
+      topic: 'Nhờ chụp ảnh sầu riêng mới cắt'
+    });
+    expect(fetchSupportRequests('prod-ba-tu-long-khanh').some((r) => r.id === req.id)).toBe(true);
+
+    // Offline voice season note sync to QR batch
+    const draft = addSeasonNoteDraft({
+      batchCode: 'LK-CC-2411',
+      stage: 'Tỉa trái đợt 2 (Voice)',
+      detail: 'Tỉa trái non giữ quả to đều tại lô A1.',
+      inputMode: 'simulated_voice',
+      isOffline: true
+    });
+    syncSeasonNoteDraftToBatch(draft.id);
+    const updatedSeason = fetchSeasonLogByBatch('LK-CC-2411');
+    expect(updatedSeason.milestones.some((m) => m.detail.includes('Tỉa trái non'))).toBe(true);
+
+    // Public QR URL + SVG quiet zone
+    const qrUrl = buildPublicTraceUrl('LK-SR-2411');
+    expect(qrUrl).toMatch(/^https:\/\/.+\/nhat-ky\/LK-SR-2411$/);
+    const qrSvg = buildTraceQrSvgDataUri(qrUrl);
+    expect(qrSvg).toContain('data:image/svg+xml');
   });
 });

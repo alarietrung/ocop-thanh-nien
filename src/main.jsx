@@ -1,11 +1,18 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, HashRouter } from 'react-router-dom';
 import App from './App.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import './index.css';
 
-if (import.meta.env.PROD && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+const isFileProtocol = typeof window !== 'undefined' && window.location.protocol === 'file:';
+
+if (
+  import.meta.env.PROD &&
+  !isFileProtocol &&
+  typeof navigator !== 'undefined' &&
+  'serviceWorker' in navigator
+) {
   window.addEventListener('load', () => {
     const swUrl = `${import.meta.env.BASE_URL}sw.js`;
     navigator.serviceWorker
@@ -30,9 +37,15 @@ if (import.meta.env.PROD && typeof navigator !== 'undefined' && 'serviceWorker' 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
-        <App />
-      </BrowserRouter>
+      {isFileProtocol ? (
+        <HashRouter>
+          <App />
+        </HashRouter>
+      ) : (
+        <BrowserRouter basename={import.meta.env.BASE_URL}>
+          <App />
+        </BrowserRouter>
+      )}
     </ErrorBoundary>
   </React.StrictMode>
 );
